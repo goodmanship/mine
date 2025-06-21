@@ -18,10 +18,11 @@ class BinanceDataCollector:
         init_dict = {
             "apiKey": config.BINANCE_API_KEY,
             "secret": config.BINANCE_SECRET_KEY,
+            "sandbox": False,
             "enableRateLimit": True,
             "options": {"defaultType": "spot"},
         }
-        self.exchange = ccxt.binance(init_dict)  # type: ignore
+        self.exchange = ccxt.binanceus(init_dict)  # type: ignore
 
         try:
             self.exchange.load_markets()

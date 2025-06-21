@@ -28,7 +28,7 @@ A comprehensive Python application for downloading, storing, and analyzing histo
 
 2. **Install dependencies**:
    ```bash
-   pip install -e .
+   make install-dev
    ```
 
 3. **Set up PostgreSQL**:
@@ -42,101 +42,200 @@ A comprehensive Python application for downloading, storing, and analyzing histo
    # Edit .env with your database and API credentials
    ```
 
-## Quick Start
+## Quick Start with Make Commands
+
+The easiest way to use this application is with the provided Make commands:
 
 1. **Initial setup**:
    ```bash
-   python main.py setup
+   make setup
    ```
 
 2. **Collect data**:
    ```bash
-   # Collect default symbols (BTC/USDT, ETH/USDT, etc.)
-   python main.py collect
-   
-   # Collect specific symbols
-   python main.py collect --symbols "BTC/USDT,ETH/USDT,ADA/USDT" --days 30
+   make collect
    ```
 
-3. **Analyze data**:
+3. **Generate charts**:
    ```bash
-   # Analyze all symbols in database
-   python main.py analyze
-   
-   # Analyze specific symbols
-   python main.py analyze --symbols "BTC/USDT,ETH/USDT" --days 7
+   make chart SYMBOL=BTC/USDT
    ```
 
-4. **Generate charts**:
+4. **Analyze data**:
    ```bash
-   # Interactive chart with technical indicators
-   python main.py chart --symbol BTC/USDT --days 30
-   
-   # Save chart to file
-   python main.py chart --symbol BTC/USDT --save btc_chart.html
+   make analyze
    ```
 
-5. **Correlation analysis**:
+5. **Check status**:
    ```bash
-   # Generate correlation heatmap
-   python main.py correlation --days 30
-   
-   # Save correlation heatmap
-   python main.py correlation --save correlation.html
+   make status
    ```
 
-## Usage Examples
+## Make Commands Reference
+
+### Basic Commands
+
+```bash
+make help                    # Show all available commands
+make setup                   # Initial setup for the application
+make collect                 # Collect crypto data from Binance
+make analyze                 # Analyze collected data
+make chart SYMBOL=BTC/USDT   # Generate price charts
+make correlation             # Generate correlation heatmap
+make status                  # Show application status
+```
+
+### Data Collection Options
+
+```bash
+# Collect specific symbols
+make collect-symbols SYMBOLS="BTC/USDT,ETH/USDT,ADA/USDT"
+
+# Collect for specific number of days
+make collect-days DAYS=30
+
+# Collect with specific timeframe
+make collect-timeframe TIMEFRAME=1h
+```
+
+### Chart Generation Options
+
+```bash
+# Generate and save chart to file
+make chart-save SYMBOL=ETH/USDT SAVE=eth_chart.html
+
+# Generate chart without technical indicators
+make chart-no-indicators SYMBOL=ETH/USDT
+```
+
+### Analysis Options
+
+```bash
+# Analyze specific symbols
+make analyze-symbols SYMBOLS="BTC/USDT,ETH/USDT"
+
+# Analyze data for specific number of days
+make analyze-days DAYS=30
+```
+
+### Development Commands
+
+```bash
+make install                 # Install production dependencies
+make install-dev             # Install all dependencies (including dev)
+make lint                    # Run ruff linter
+make format                  # Format code with ruff
+make check                   # Run all code quality checks
+make fix                     # Fix code with ruff
+make test                    # Run tests
+make clean                   # Clean up cache and temporary files
+```
+
+### Database Operations
+
+```bash
+make db-init                 # Initialize database tables
+make db-status               # Check database connection and status
+make db-create               # Create PostgreSQL database
+```
+
+### Quick Workflows
+
+```bash
+make quick-start             # Setup, collect data, and analyze
+make dev-setup               # Complete development setup
+make dev-check               # Run all development checks
+```
+
+## Python Commands (Advanced Usage)
+
+For advanced usage or when you need more control, you can use the Python commands directly:
 
 ### Data Collection
 
 ```bash
+# Collect default symbols (BTC/USDT, ETH/USDT, etc.)
+uv run python main.py collect
+
+# Collect specific symbols
+uv run python main.py collect --symbols "BTC/USDT,ETH/USDT,ADA/USDT" --days 30
+
 # Collect 1 year of hourly data for Bitcoin
-python main.py collect --symbols "BTC/USDT" --days 365 --timeframe 1h
-
-# Collect 1 week of 5-minute data for multiple coins
-python main.py collect --symbols "BTC/USDT,ETH/USDT,ADA/USDT" --days 7 --timeframe 5m
-
-# Collect daily data for all default symbols
-python main.py collect --timeframe 1d
+uv run python main.py collect --symbols "BTC/USDT" --days 365 --timeframe 1h
 ```
 
 ### Analysis
 
 ```bash
+# Analyze all symbols in database
+uv run python main.py analyze
+
+# Analyze specific symbols
+uv run python main.py analyze --symbols "BTC/USDT,ETH/USDT" --days 7
+
 # Compare performance of top cryptocurrencies
-python main.py analyze --days 90
-
-# Analyze specific time period
-python main.py analyze --symbols "BTC/USDT,ETH/USDT" --days 7 --timeframe 1h
-
-# Get detailed statistics
-python main.py analyze --verbose
+uv run python main.py analyze --days 90
 ```
 
 ### Visualization
 
 ```bash
-# Generate comprehensive chart with all indicators
-python main.py chart --symbol BTC/USDT --days 30
+# Interactive chart with technical indicators
+uv run python main.py chart --symbol BTC/USDT --days 30
+
+# Save chart to file
+uv run python main.py chart --symbol BTC/USDT --save btc_chart.html
 
 # Simple price chart without indicators
-python main.py chart --symbol ETH/USDT --days 7 --no-indicators
-
-# Save chart for later viewing
-python main.py chart --symbol ADA/USDT --save ada_analysis.html
+uv run python main.py chart --symbol ETH/USDT --days 7 --no-indicators
 ```
 
 ### Correlation Analysis
 
 ```bash
-# Analyze correlations between all symbols in database
-python main.py correlation --days 30
-
-# Focus on specific symbols
-python main.py correlation --symbols "BTC/USDT,ETH/USDT,BNB/USDT" --days 90
+# Generate correlation heatmap
+uv run python main.py correlation --days 30
 
 # Save correlation matrix
-python main.py correlation --save crypto_correlations.html
+uv run python main.py correlation --save crypto_correlations.html
+```
+
+## Example Usage
+
+### Basic Workflow
+
+```bash
+# 1. Setup the application
+make setup
+
+# 2. Collect data for popular cryptocurrencies
+make collect
+
+# 3. Generate a Bitcoin chart
+make chart SYMBOL=BTC/USDT
+
+# 4. Analyze the data
+make analyze
+
+# 5. Check what symbols are available
+make status
+```
+
+### Advanced Workflow
+
+```bash
+# 1. Collect specific symbols for 30 days
+make collect-symbols SYMBOLS="BTC/USDT,ETH/USDT,SOL/USDT" DAYS=30
+
+# 2. Generate and save multiple charts
+make chart-save SYMBOL=BTC/USDT SAVE=btc_analysis.html
+make chart-save SYMBOL=ETH/USDT SAVE=eth_analysis.html
+
+# 3. Analyze correlations
+make correlation
+
+# 4. Check database status
+make db-status
 ```
 
 ## Configuration

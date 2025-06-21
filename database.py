@@ -1,6 +1,5 @@
-"""Database models and connection management for crypto data."""
-
 import logging
+from contextlib import contextmanager
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime, Float, Index, Integer, String, create_engine
@@ -10,19 +9,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from config import config
 
-# Configure logging
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
-# Create database engine
 engine = create_engine(config.DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
 class CryptoPrice(Base):
-    """Model for storing cryptocurrency price data."""
-
     __tablename__ = "crypto_prices"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -36,12 +31,12 @@ class CryptoPrice(Base):
     timeframe = Column(String, nullable=False, default="1h")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Create composite index for efficient queries
     __table_args__ = (Index("idx_symbol_timestamp", "symbol", "timestamp"),)
 
 
-def get_db() -> Session:
-    """Get database session."""
+@contextmanager
+def get_db_session():
+    """Context manager for database sessions."""
     db = SessionLocal()
     try:
         yield db
@@ -50,7 +45,6 @@ def get_db() -> Session:
 
 
 def init_db() -> None:
-    """Initialize database tables."""
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables created successfully")
@@ -70,9 +64,7 @@ def save_price_data(
     volume: float,
     timeframe: str = "1h",
 ) -> None:
-    """Save price data to database."""
     try:
-        # Check if data already exists for this symbol and timestamp
         existing = (
             db.query(CryptoPrice)
             .filter(
@@ -84,14 +76,12 @@ def save_price_data(
         )
 
         if existing:
-            # Update existing record
             existing.open_price = open_price
             existing.high_price = high_price
             existing.low_price = low_price
             existing.close_price = close_price
             existing.volume = volume
         else:
-            # Create new record
             price_data = CryptoPrice(
                 symbol=symbol,
                 timestamp=timestamp,
@@ -119,10 +109,7 @@ def get_price_data(
     timeframe: str = "1h",
     limit: int | None = None,
 ) -> list[CryptoPrice]:
-    """Retrieve price data from database."""
-    query = db.query(CryptoPrice).filter(
-        CryptoPrice.symbol == symbol, CryptoPrice.timeframe == timeframe
-    )
+    query = db.query(CryptoPrice).filter(CryptoPrice.symbol == symbol, CryptoPrice.timeframe == timeframe)
 
     if start_date:
         query = query.filter(CryptoPrice.timestamp >= start_date)
@@ -137,10 +124,7 @@ def get_price_data(
     return query.all()
 
 
-def get_latest_price(
-    db: Session, symbol: str, timeframe: str = "1h"
-) -> CryptoPrice | None:
-    """Get the latest price data for a symbol."""
+def get_latest_price(db: Session, symbol: str, timeframe: str = "1h") -> CryptoPrice | None:
     return (
         db.query(CryptoPrice)
         .filter(CryptoPrice.symbol == symbol, CryptoPrice.timeframe == timeframe)
@@ -150,5 +134,4 @@ def get_latest_price(
 
 
 def get_symbols(db: Session) -> list[str]:
-    """Get all unique symbols in the database."""
     return [row[0] for row in db.query(CryptoPrice.symbol).distinct()]

@@ -1,19 +1,15 @@
-"""Data analysis and visualization for cryptocurrency data."""
-
 import logging
 from datetime import datetime
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
 from plotly.subplots import make_subplots
 
 from config import config
-from database import get_db, get_price_data
+from database import get_db_session, get_price_data
 
-# Set up plotting style
 plt.style.use("seaborn-v0_8")
 sns.set_palette("husl")
 
@@ -21,17 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class CryptoAnalyzer:
-    """Analyzer for cryptocurrency data."""
-
-    def __init__(self):
-        """Initialize the analyzer."""
-        self.db = next(get_db())
-
-    def __del__(self):
-        """Clean up database connection."""
-        if hasattr(self, "db"):
-            self.db.close()
-
     def get_data_as_dataframe(
         self,
         symbol: str,
@@ -40,8 +25,8 @@ class CryptoAnalyzer:
         timeframe: str = "1h",
         limit: int | None = None,
     ) -> pd.DataFrame:
-        """Get price data as pandas DataFrame."""
-        data = get_price_data(self.db, symbol, start_date, end_date, timeframe, limit)
+        with get_db_session() as db:
+            data = get_price_data(db, symbol, start_date, end_date, timeframe, limit)
 
         if not data:
             return pd.DataFrame()
@@ -66,39 +51,32 @@ class CryptoAnalyzer:
         return df
 
     def calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Calculate technical indicators for the DataFrame."""
         if df.empty:
             return df
 
-        # Moving averages
         df["sma_20"] = df["close"].rolling(window=20).mean()
         df["sma_50"] = df["close"].rolling(window=50).mean()
         df["ema_12"] = df["close"].ewm(span=12).mean()
         df["ema_26"] = df["close"].ewm(span=26).mean()
 
-        # MACD
         df["macd"] = df["ema_12"] - df["ema_26"]
         df["macd_signal"] = df["macd"].ewm(span=9).mean()
         df["macd_histogram"] = df["macd"] - df["macd_signal"]
 
-        # RSI
         delta = df["close"].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
         rs = gain / loss
         df["rsi"] = 100 - (100 / (1 + rs))
 
-        # Bollinger Bands
         df["bb_middle"] = df["close"].rolling(window=20).mean()
         bb_std = df["close"].rolling(window=20).std()
         df["bb_upper"] = df["bb_middle"] + (bb_std * 2)
         df["bb_lower"] = df["bb_middle"] - (bb_std * 2)
 
-        # Volume indicators
         df["volume_sma"] = df["volume"].rolling(window=20).mean()
         df["volume_ratio"] = df["volume"] / df["volume_sma"]
 
-        # Price changes
         df["price_change"] = df["close"].pct_change()
         df["price_change_24h"] = df["close"].pct_change(periods=24)
 
@@ -111,7 +89,6 @@ class CryptoAnalyzer:
         end_date: datetime | None = None,
         timeframe: str = "1h",
     ) -> pd.DataFrame:
-        """Calculate correlation matrix between multiple symbols."""
         price_data = {}
 
         for symbol in symbols:
@@ -122,10 +99,7 @@ class CryptoAnalyzer:
         if not price_data:
             return pd.DataFrame()
 
-        # Create DataFrame with all price data
         combined_df = pd.DataFrame(price_data)
-
-        # Calculate correlation matrix
         correlation_matrix = combined_df.corr()
 
         return correlation_matrix
@@ -139,7 +113,6 @@ class CryptoAnalyzer:
         include_indicators: bool = True,
         save_path: str | None = None,
     ) -> None:
-        """Create a comprehensive price chart with indicators."""
         df = self.get_data_as_dataframe(symbol, start_date, end_date, timeframe)
 
         if df.empty:
@@ -149,7 +122,6 @@ class CryptoAnalyzer:
         if include_indicators:
             df = self.calculate_technical_indicators(df)
 
-        # Create subplots
         fig = make_subplots(
             rows=3,
             cols=1,
@@ -159,7 +131,6 @@ class CryptoAnalyzer:
             row_heights=[0.6, 0.2, 0.2],
         )
 
-        # Candlestick chart
         fig.add_trace(
             go.Candlestick(
                 x=df.index,
@@ -173,7 +144,6 @@ class CryptoAnalyzer:
             col=1,
         )
 
-        # Moving averages
         if include_indicators:
             fig.add_trace(
                 go.Scatter(
@@ -199,7 +169,6 @@ class CryptoAnalyzer:
                 col=1,
             )
 
-            # Bollinger Bands
             fig.add_trace(
                 go.Scatter(
                     x=df.index,
@@ -225,11 +194,7 @@ class CryptoAnalyzer:
                 col=1,
             )
 
-        # Volume
-        colors = [
-            "red" if close < open else "green"
-            for close, open in zip(df["close"], df["open"], strict=False)
-        ]
+        colors = ["red" if close < open else "green" for close, open in zip(df["close"], df["open"], strict=False)]
 
         fig.add_trace(
             go.Bar(x=df.index, y=df["volume"], name="Volume", marker_color=colors),
@@ -237,7 +202,6 @@ class CryptoAnalyzer:
             col=1,
         )
 
-        # RSI
         if include_indicators:
             fig.add_trace(
                 go.Scatter(
@@ -251,19 +215,37 @@ class CryptoAnalyzer:
                 col=1,
             )
 
-            # RSI overbought/oversold lines
-            fig.add_hline(y=70, line_dash="dash", line_color="red", row=3, col=1)
-            fig.add_hline(y=30, line_dash="dash", line_color="green", row=3, col=1)
+            fig.add_hline(
+                y=70,
+                line_dash="dash",
+                line_color="red",
+                row=3,
+                col=1,
+                annotation_text="Overbought",
+                annotation_position="bottom right",
+            )
 
-        # Update layout
+            fig.add_hline(
+                y=30,
+                line_dash="dash",
+                line_color="green",
+                row=3,
+                col=1,
+                annotation_text="Oversold",
+                annotation_position="bottom right",
+            )
+
         fig.update_layout(
-            title=f"{symbol} Analysis", xaxis_rangeslider_visible=False, height=800
+            title_text=f"{symbol} Price Analysis",
+            xaxis_title="Date",
+            yaxis_title="Price (USDT)",
+            xaxis_rangeslider_visible=False,
+            showlegend=True,
+            legend_title="Indicators",
         )
 
-        # Show or save
         if save_path:
             fig.write_html(save_path)
-            logger.info(f"Chart saved to {save_path}")
         else:
             fig.show()
 
@@ -275,27 +257,29 @@ class CryptoAnalyzer:
         timeframe: str = "1h",
         save_path: str | None = None,
     ) -> None:
-        """Create a correlation heatmap for multiple symbols."""
-        correlation_matrix = self.calculate_correlation_matrix(
-            symbols, start_date, end_date, timeframe
-        )
+        correlation_matrix = self.calculate_correlation_matrix(symbols, start_date, end_date, timeframe)
 
         if correlation_matrix.empty:
-            logger.warning("No correlation data available")
+            logger.warning("Could not generate correlation matrix: no data")
             return
 
-        fig = px.imshow(
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(
             correlation_matrix,
-            text_auto=True,
-            aspect="auto",
-            title="Cryptocurrency Correlation Matrix",
+            annot=True,
+            cmap="coolwarm",
+            fmt=".2f",
+            linewidths=0.5,
         )
+        plt.title("Cryptocurrency Correlation Heatmap")
+        plt.xlabel("Symbols")
+        plt.ylabel("Symbols")
 
         if save_path:
-            fig.write_html(save_path)
+            plt.savefig(save_path)
             logger.info(f"Correlation heatmap saved to {save_path}")
         else:
-            fig.show()
+            plt.show()
 
     def generate_summary_statistics(
         self,
@@ -304,36 +288,28 @@ class CryptoAnalyzer:
         end_date: datetime | None = None,
         timeframe: str = "1h",
     ) -> dict:
-        """Generate summary statistics for a symbol."""
         df = self.get_data_as_dataframe(symbol, start_date, end_date, timeframe)
 
         if df.empty:
             return {}
 
-        # Calculate statistics
-        stats = {
+        df = self.calculate_technical_indicators(df)
+
+        summary = {
             "symbol": symbol,
-            "period_start": df.index.min(),
-            "period_end": df.index.max(),
-            "total_periods": len(df),
-            "current_price": df["close"].iloc[-1],
-            "price_change_total": (
-                (df["close"].iloc[-1] - df["close"].iloc[0]) / df["close"].iloc[0]
-            )
-            * 100,
-            "highest_price": df["high"].max(),
-            "lowest_price": df["low"].min(),
-            "average_price": df["close"].mean(),
-            "price_volatility": df["close"].std(),
-            "total_volume": df["volume"].sum(),
-            "average_volume": df["volume"].mean(),
-            "max_volume": df["volume"].max(),
-            "price_change_std": df["price_change"].std() * 100,  # Daily volatility
-            "positive_days": (df["price_change"] > 0).sum(),
-            "negative_days": (df["price_change"] < 0).sum(),
+            "start_date": df.index.min(),
+            "end_date": df.index.max(),
+            "total_days": (df.index.max() - df.index.min()).days,
+            "latest_price": df["close"].iloc[-1],
+            "price_change_pct": ((df["close"].iloc[-1] - df["close"].iloc[0]) / df["close"].iloc[0]) * 100,
+            "24h_high": df["high"].last("24h").max(),
+            "24h_low": df["low"].last("24h").min(),
+            "24h_volume": df["volume"].last("24h").sum(),
+            "volatility": df["close"].pct_change().std() * (365**0.5),  # Annualized
+            "latest_rsi": df["rsi"].iloc[-1],
         }
 
-        return stats
+        return summary
 
     def compare_symbols(
         self,
@@ -342,45 +318,49 @@ class CryptoAnalyzer:
         end_date: datetime | None = None,
         timeframe: str = "1h",
     ) -> pd.DataFrame:
-        """Compare performance of multiple symbols."""
         comparison_data = []
 
         for symbol in symbols:
-            stats = self.generate_summary_statistics(
-                symbol, start_date, end_date, timeframe
-            )
+            stats = self.generate_summary_statistics(symbol, start_date, end_date, timeframe)
             if stats:
                 comparison_data.append(stats)
 
         if not comparison_data:
             return pd.DataFrame()
 
+        # Create DataFrame and sort by performance
         df = pd.DataFrame(comparison_data)
-        df.set_index("symbol", inplace=True)
+        df.sort_values(by="price_change_pct", ascending=False, inplace=True)
 
         return df
 
 
 def main():
-    """Main function for testing the analyzer."""
     analyzer = CryptoAnalyzer()
 
-    # Test with a few symbols
-    symbols = config.DEFAULT_SYMBOLS[:3]
+    # Example usage:
+    symbol = config.DEFAULT_SYMBOLS[0]
+    days_back = 30
+    start_date = datetime.now() - pd.Timedelta(days=days_back)
 
-    # Generate summary statistics
-    print("Summary Statistics:")
-    for symbol in symbols:
-        stats = analyzer.generate_summary_statistics(symbol, days_back=30)
-        if stats:
-            print(f"\n{symbol}:")
-            print(f"  Current Price: ${stats['current_price']:,.2f}")
-            print(f"  Total Change: {stats['price_change_total']:.2f}%")
-            print(f"  Volatility: {stats['price_change_std']:.2f}%")
+    # Get data
+    df = analyzer.get_data_as_dataframe(symbol, start_date)
+    print(f"Data for {symbol}:\n{df.head()}\n")
 
-    # Create correlation heatmap
-    print(f"\nCreating correlation heatmap for {symbols}...")
-    analyzer.plot_correlation_heatmap(symbols, days_back=30)
+    # Calculate indicators
+    df_with_indicators = analyzer.calculate_technical_indicators(df)
+    print(f"Data with indicators:\n{df_with_indicators.tail()}\n")
+
+    # Generate summary
+    summary = analyzer.generate_summary_statistics(symbol, start_date)
+    print(f"Summary statistics:\n{summary}\n")
+
+    # Plot chart
+    analyzer.plot_price_chart(symbol, start_date, include_indicators=True)
+
+    # Compare symbols
+    comparison = analyzer.compare_symbols(config.DEFAULT_SYMBOLS, start_date)
+    print(f"Symbol comparison:\n{comparison}")
 
 
 if __name__ == "__main__":

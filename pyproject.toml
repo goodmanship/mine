@@ -26,7 +26,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "ruff>=0.1.0",
     "black>=23.0.0",
-    "mypy>=1.0.0",
+    "ty>=0.0.1a11",
     "pre-commit>=3.0.0"
 ]
 
@@ -39,7 +39,7 @@ packages = ["."]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 88
+line-length = 120
 
 [tool.ruff.lint]
 select = [
@@ -67,15 +67,10 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.black]
-line-length = 88
+line-length = 120
 target-version = ['py312']
 
-[tool.mypy]
-python_version = "3.12"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-ignore_missing_imports = true
+[tool.ty]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

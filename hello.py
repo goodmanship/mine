@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-Crypto Data Analysis Tool
-
-A comprehensive Python application for downloading, storing, and analyzing
-historical cryptocurrency data from Binance.
-
-For usage instructions, see README.md
-"""
-
-
 def main():
     print("🚀 Crypto Data Analysis Tool")
     print("=" * 40)

@@ -1,43 +1,28 @@
 #!/usr/bin/env python3
-"""
-Example script demonstrating the crypto data analysis application.
-
-This script shows how to:
-1. Collect historical data from Binance
-2. Store data in PostgreSQL
-3. Analyze trends and correlations
-4. Generate visualizations
-"""
-
 import logging
+from datetime import datetime, timedelta
 
 from analyzer import CryptoAnalyzer
 from data_collector import BinanceDataCollector
-from database import get_db, get_symbols, init_db
+from database import get_db_session, get_symbols, init_db
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 def setup_database():
-    """Initialize the database."""
     logger.info("Setting up database...")
     init_db()
     logger.info("Database setup complete")
 
 
 def collect_sample_data():
-    """Collect sample data for demonstration."""
     logger.info("Collecting sample data...")
 
-    # Initialize collector
     collector = BinanceDataCollector()
 
-    # Sample symbols to collect
     symbols = ["BTC/USDT", "ETH/USDT", "ADA/USDT"]
 
-    # Collect 7 days of hourly data
     for symbol in symbols:
         logger.info(f"Collecting data for {symbol}...")
         try:
@@ -52,64 +37,59 @@ def collect_sample_data():
 
 
 def analyze_data():
-    """Analyze the collected data."""
     logger.info("Analyzing data...")
 
-    # Initialize analyzer
     analyzer = CryptoAnalyzer()
 
-    # Get symbols from database
-    db = next(get_db())
-    symbols = get_symbols(db)
-    db.close()
+    with get_db_session() as db:
+        symbols = get_symbols(db)
 
     if not symbols:
         logger.warning("No symbols found in database")
         return
 
-    # Generate summary statistics
+    # Calculate date range for 7 days
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+
     logger.info("Generating summary statistics...")
-    for symbol in symbols[:3]:  # Analyze first 3 symbols
-        stats = analyzer.generate_summary_statistics(symbol, days_back=7)
+    for symbol in symbols[:3]:
+        stats = analyzer.generate_summary_statistics(symbol, start_date, end_date)
         if stats:
             print(f"\n{symbol} Statistics:")
-            print(f"  Current Price: ${stats['current_price']:,.2f}")
-            print(f"  Total Change: {stats['price_change_total']:+.2f}%")
-            print(f"  Volatility: {stats['price_change_std']:.2f}%")
-            print(f"  Total Volume: {stats['total_volume']:,.0f}")
+            print(f"  Current Price: ${stats['latest_price']:,.2f}")
+            print(f"  Total Change: {stats['price_change_pct']:+.2f}%")
+            print(f"  Volatility: {stats['volatility']:.2f}%")
+            print(f"  Total Volume: {stats['24h_volume']:,.0f}")
 
-    # Generate correlation matrix
     logger.info("Calculating correlations...")
-    correlation_matrix = analyzer.calculate_correlation_matrix(symbols[:5], days_back=7)
+    correlation_matrix = analyzer.calculate_correlation_matrix(symbols[:5], start_date, end_date)
     if not correlation_matrix.empty:
         print("\nCorrelation Matrix:")
         print(correlation_matrix.round(3))
 
-    # Compare performance
     logger.info("Comparing performance...")
-    comparison_df = analyzer.compare_symbols(symbols[:5], days_back=7)
+    comparison_df = analyzer.compare_symbols(symbols[:5], start_date, end_date)
     if not comparison_df.empty:
         print("\nPerformance Comparison:")
-        print(
-            comparison_df[
-                ["price_change_total", "price_change_std", "average_volume"]
-            ].round(2)
-        )
+        print(comparison_df[["price_change_pct", "volatility", "24h_volume"]].round(2))
 
 
 def generate_charts():
-    """Generate sample charts."""
     logger.info("Generating charts...")
 
-    # Initialize analyzer
     analyzer = CryptoAnalyzer()
 
-    # Generate chart for Bitcoin
+    # Calculate date range for 7 days
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+
     try:
         logger.info("Generating BTC/USDT chart...")
         analyzer.plot_price_chart(
             symbol="BTC/USDT",
-            days_back=7,
+            start_date=start_date,
+            end_date=end_date,
             timeframe="1h",
             include_indicators=True,
             save_path="btc_sample_chart.html",
@@ -118,13 +98,13 @@ def generate_charts():
     except Exception as e:
         logger.error(f"Error generating BTC chart: {e}")
 
-    # Generate correlation heatmap
     try:
         logger.info("Generating correlation heatmap...")
         symbols = ["BTC/USDT", "ETH/USDT", "ADA/USDT", "BNB/USDT"]
         analyzer.plot_correlation_heatmap(
             symbols=symbols,
-            days_back=7,
+            start_date=start_date,
+            end_date=end_date,
             timeframe="1h",
             save_path="correlation_sample.html",
         )
@@ -134,21 +114,13 @@ def generate_charts():
 
 
 def main():
-    """Main function to run the complete example."""
     print("🚀 Crypto Data Analysis Example")
     print("=" * 50)
 
     try:
-        # Step 1: Setup
         setup_database()
-
-        # Step 2: Collect data
         collect_sample_data()
-
-        # Step 3: Analyze data
         analyze_data()
-
-        # Step 4: Generate charts
         generate_charts()
 
         print("\n✅ Example completed successfully!")

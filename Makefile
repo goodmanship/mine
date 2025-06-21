@@ -16,7 +16,7 @@ clean: ## Clean up cache and temporary files
 	rm -rf .pytest_cache/
 	rm -rf htmlcov/
 	rm -rf .coverage
-	rm -rf .mypy_cache/
+	rm -rf .ty_cache/
 	rm -rf .ruff_cache/
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
@@ -31,7 +31,11 @@ format: ## Format code with ruff
 check: ## Run all code quality checks
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy .
+	uv run ty check .
+
+fix: ## Fix code with ruff
+	uv run ruff check --fix .
+	uv run ruff format .
 
 # Testing
 test: ## Run tests

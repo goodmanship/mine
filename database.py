@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import Column, DateTime, Float, Index, Integer, String, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from config import config
 
@@ -44,7 +44,7 @@ def get_db_session():
         db.close()
 
 
-def init_db() -> None:
+def init_db():
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables created successfully")
@@ -54,16 +54,16 @@ def init_db() -> None:
 
 
 def save_price_data(
-    db: Session,
-    symbol: str,
-    timestamp: datetime,
-    open_price: float,
-    high_price: float,
-    low_price: float,
-    close_price: float,
-    volume: float,
-    timeframe: str = "1h",
-) -> None:
+    db,
+    symbol,
+    timestamp,
+    open_price,
+    high_price,
+    low_price,
+    close_price,
+    volume,
+    timeframe="1h",
+):
     try:
         existing = (
             db.query(CryptoPrice)
@@ -102,13 +102,13 @@ def save_price_data(
 
 
 def get_price_data(
-    db: Session,
-    symbol: str,
-    start_date: datetime | None = None,
-    end_date: datetime | None = None,
-    timeframe: str = "1h",
-    limit: int | None = None,
-) -> list[CryptoPrice]:
+    db,
+    symbol,
+    start_date=None,
+    end_date=None,
+    timeframe="1h",
+    limit=None,
+):
     query = db.query(CryptoPrice).filter(CryptoPrice.symbol == symbol, CryptoPrice.timeframe == timeframe)
 
     if start_date:
@@ -124,7 +124,7 @@ def get_price_data(
     return query.all()
 
 
-def get_latest_price(db: Session, symbol: str, timeframe: str = "1h") -> CryptoPrice | None:
+def get_latest_price(db, symbol, timeframe="1h"):
     return (
         db.query(CryptoPrice)
         .filter(CryptoPrice.symbol == symbol, CryptoPrice.timeframe == timeframe)
@@ -133,5 +133,5 @@ def get_latest_price(db: Session, symbol: str, timeframe: str = "1h") -> CryptoP
     )
 
 
-def get_symbols(db: Session) -> list[str]:
+def get_symbols(db):
     return [row[0] for row in db.query(CryptoPrice.symbol).distinct()]

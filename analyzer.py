@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -19,12 +18,12 @@ logger = logging.getLogger(__name__)
 class CryptoAnalyzer:
     def get_data_as_dataframe(
         self,
-        symbol: str,
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        timeframe: str = "1h",
-        limit: int | None = None,
-    ) -> pd.DataFrame:
+        symbol,
+        start_date=None,
+        end_date=None,
+        timeframe="1h",
+        limit=None,
+    ):
         with get_db_session() as db:
             data = get_price_data(db, symbol, start_date, end_date, timeframe, limit)
 
@@ -50,7 +49,7 @@ class CryptoAnalyzer:
 
         return df
 
-    def calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+    def calculate_technical_indicators(self, df):
         if df.empty:
             return df
 
@@ -84,11 +83,11 @@ class CryptoAnalyzer:
 
     def calculate_correlation_matrix(
         self,
-        symbols: list[str],
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        timeframe: str = "1h",
-    ) -> pd.DataFrame:
+        symbols,
+        start_date=None,
+        end_date=None,
+        timeframe="1h",
+    ):
         price_data = {}
 
         for symbol in symbols:
@@ -106,13 +105,13 @@ class CryptoAnalyzer:
 
     def plot_price_chart(
         self,
-        symbol: str,
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        timeframe: str = "1h",
-        include_indicators: bool = True,
-        save_path: str | None = None,
-    ) -> None:
+        symbol,
+        start_date=None,
+        end_date=None,
+        timeframe="1h",
+        include_indicators=True,
+        save_path=None,
+    ):
         df = self.get_data_as_dataframe(symbol, start_date, end_date, timeframe)
 
         if df.empty:
@@ -215,33 +214,15 @@ class CryptoAnalyzer:
                 col=1,
             )
 
-            fig.add_hline(
-                y=70,
-                line_dash="dash",
-                line_color="red",
-                row=3,
-                col=1,
-                annotation_text="Overbought",
-                annotation_position="bottom right",
-            )
-
-            fig.add_hline(
-                y=30,
-                line_dash="dash",
-                line_color="green",
-                row=3,
-                col=1,
-                annotation_text="Oversold",
-                annotation_position="bottom right",
-            )
+            fig.add_hline(y=70, line_dash="dash", line_color="red", row=3, col=1)
+            fig.add_hline(y=30, line_dash="dash", line_color="green", row=3, col=1)
 
         fig.update_layout(
-            title_text=f"{symbol} Price Analysis",
+            title=f"{symbol} Price Chart ({timeframe})",
             xaxis_title="Date",
-            yaxis_title="Price (USDT)",
-            xaxis_rangeslider_visible=False,
+            yaxis_title="Price",
+            height=800,
             showlegend=True,
-            legend_title="Indicators",
         )
 
         if save_path:
@@ -251,43 +232,50 @@ class CryptoAnalyzer:
 
     def plot_correlation_heatmap(
         self,
-        symbols: list[str],
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        timeframe: str = "1h",
-        save_path: str | None = None,
-    ) -> None:
+        symbols,
+        start_date=None,
+        end_date=None,
+        timeframe="1h",
+        save_path=None,
+    ):
         correlation_matrix = self.calculate_correlation_matrix(symbols, start_date, end_date, timeframe)
 
         if correlation_matrix.empty:
-            logger.warning("Could not generate correlation matrix: no data")
+            logger.warning("No data available for correlation analysis")
             return
 
-        plt.figure(figsize=(12, 10))
-        sns.heatmap(
-            correlation_matrix,
-            annot=True,
-            cmap="coolwarm",
-            fmt=".2f",
-            linewidths=0.5,
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=correlation_matrix.values,
+                x=correlation_matrix.columns,
+                y=correlation_matrix.index,
+                colorscale="RdBu",
+                zmid=0,
+                text=correlation_matrix.round(3).values,
+                texttemplate="%{text}",
+                textfont={"size": 10},
+            )
         )
-        plt.title("Cryptocurrency Correlation Heatmap")
-        plt.xlabel("Symbols")
-        plt.ylabel("Symbols")
+
+        fig.update_layout(
+            title=f"Correlation Matrix ({timeframe})",
+            xaxis_title="Symbols",
+            yaxis_title="Symbols",
+            height=600,
+        )
 
         if save_path:
-            plt.savefig(save_path)
-            logger.info(f"Correlation heatmap saved to {save_path}")
+            fig.write_html(save_path)
         else:
-            plt.show()
+            fig.show()
 
     def generate_summary_statistics(
         self,
-        symbol: str,
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        timeframe: str = "1h",
-    ) -> dict:
+        symbol,
+        start_date=None,
+        end_date=None,
+        timeframe="1h",
+    ):
         df = self.get_data_as_dataframe(symbol, start_date, end_date, timeframe)
 
         if df.empty:
@@ -295,29 +283,33 @@ class CryptoAnalyzer:
 
         df = self.calculate_technical_indicators(df)
 
-        summary = {
-            "symbol": symbol,
-            "start_date": df.index.min(),
-            "end_date": df.index.max(),
-            "total_days": (df.index.max() - df.index.min()).days,
-            "latest_price": df["close"].iloc[-1],
-            "price_change_pct": ((df["close"].iloc[-1] - df["close"].iloc[0]) / df["close"].iloc[0]) * 100,
-            "24h_high": df["high"].last("24h").max(),
-            "24h_low": df["low"].last("24h").min(),
-            "24h_volume": df["volume"].last("24h").sum(),
-            "volatility": df["close"].pct_change().std() * (365**0.5),  # Annualized
-            "latest_rsi": df["rsi"].iloc[-1],
-        }
+        latest_price = df["close"].iloc[-1]
+        first_price = df["close"].iloc[0]
+        price_change = latest_price - first_price
+        price_change_pct = (price_change / first_price) * 100
 
-        return summary
+        volatility = df["price_change"].std() * 100
+        volume_24h = df["volume"].iloc[-24:].sum() if len(df) >= 24 else df["volume"].sum()
+
+        return {
+            "symbol": symbol,
+            "latest_price": latest_price,
+            "price_change": price_change,
+            "price_change_pct": price_change_pct,
+            "volatility": volatility,
+            "24h_volume": volume_24h,
+            "rsi": df["rsi"].iloc[-1] if "rsi" in df.columns else None,
+            "sma_20": df["sma_20"].iloc[-1] if "sma_20" in df.columns else None,
+            "sma_50": df["sma_50"].iloc[-1] if "sma_50" in df.columns else None,
+        }
 
     def compare_symbols(
         self,
-        symbols: list[str],
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        timeframe: str = "1h",
-    ) -> pd.DataFrame:
+        symbols,
+        start_date=None,
+        end_date=None,
+        timeframe="1h",
+    ):
         comparison_data = []
 
         for symbol in symbols:
@@ -328,39 +320,23 @@ class CryptoAnalyzer:
         if not comparison_data:
             return pd.DataFrame()
 
-        # Create DataFrame and sort by performance
-        df = pd.DataFrame(comparison_data)
-        df.sort_values(by="price_change_pct", ascending=False, inplace=True)
-
-        return df
+        return pd.DataFrame(comparison_data).set_index("symbol")
 
 
 def main():
     analyzer = CryptoAnalyzer()
 
-    # Example usage:
-    symbol = config.DEFAULT_SYMBOLS[0]
-    days_back = 30
-    start_date = datetime.now() - pd.Timedelta(days=days_back)
+    symbols = config.DEFAULT_SYMBOLS[:3]
 
-    # Get data
-    df = analyzer.get_data_as_dataframe(symbol, start_date)
-    print(f"Data for {symbol}:\n{df.head()}\n")
-
-    # Calculate indicators
-    df_with_indicators = analyzer.calculate_technical_indicators(df)
-    print(f"Data with indicators:\n{df_with_indicators.tail()}\n")
-
-    # Generate summary
-    summary = analyzer.generate_summary_statistics(symbol, start_date)
-    print(f"Summary statistics:\n{summary}\n")
-
-    # Plot chart
-    analyzer.plot_price_chart(symbol, start_date, include_indicators=True)
-
-    # Compare symbols
-    comparison = analyzer.compare_symbols(config.DEFAULT_SYMBOLS, start_date)
-    print(f"Symbol comparison:\n{comparison}")
+    print("Generating summary statistics...")
+    for symbol in symbols:
+        stats = analyzer.generate_summary_statistics(symbol)
+        if stats:
+            print(f"\n{symbol}:")
+            print(f"  Latest Price: ${stats['latest_price']:,.2f}")
+            print(f"  Price Change: {stats['price_change_pct']:+.2f}%")
+            print(f"  Volatility: {stats['volatility']:.2f}%")
+            print(f"  24h Volume: {stats['24h_volume']:,.0f}")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,6 @@
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any
 
 import ccxt
 import pandas as pd
@@ -31,16 +30,16 @@ class BinanceDataCollector:
             logger.error(f"Failed to connect to Binance: {e}")
             raise
 
-    def get_available_symbols(self) -> list[str]:
+    def get_available_symbols(self):
         return list(self.exchange.markets.keys())
 
     def fetch_ohlcv(
         self,
-        symbol: str,
-        timeframe: str = "1h",
-        since: datetime | None = None,
-        limit: int | None = None,
-    ) -> pd.DataFrame:
+        symbol,
+        timeframe="1h",
+        since=None,
+        limit=None,
+    ):
         try:
             since_timestamp = None
             if since:
@@ -58,11 +57,11 @@ class BinanceDataCollector:
             logger.error(f"Error fetching OHLCV data for {symbol}: {e}")
             raise
 
-    def fetch_historical_data(self, symbol: str, timeframe: str = "1h", days_back: int = 30) -> pd.DataFrame:
+    def fetch_historical_data(self, symbol, timeframe="1h", days_back=30):
         since = datetime.now() - timedelta(days=days_back)
         return self.fetch_ohlcv(symbol, timeframe, since=since)
 
-    def save_to_database(self, symbol: str, df: pd.DataFrame, timeframe: str = "1h") -> None:
+    def save_to_database(self, symbol, df, timeframe="1h"):
         with get_db_session() as db:
             try:
                 for _, row in tqdm(df.iterrows(), total=len(df), desc=f"Saving {symbol}"):
@@ -84,7 +83,7 @@ class BinanceDataCollector:
                 logger.error(f"Error saving data for {symbol}: {e}")
                 raise
 
-    def collect_and_save(self, symbols: list[str], timeframe: str = "1h", days_back: int = 30) -> None:
+    def collect_and_save(self, symbols, timeframe="1h", days_back=30):
         logger.info(f"Starting data collection for {len(symbols)} symbols")
 
         for symbol in symbols:
@@ -105,7 +104,7 @@ class BinanceDataCollector:
                 logger.error(f"Error processing {symbol}: {e}")
                 continue
 
-    def get_latest_prices(self, symbols: list[str]) -> dict[str, float]:
+    def get_latest_prices(self, symbols):
         latest_prices = {}
 
         for symbol in symbols:
@@ -118,7 +117,7 @@ class BinanceDataCollector:
 
         return latest_prices
 
-    def get_market_info(self, symbol: str) -> dict[str, Any]:
+    def get_market_info(self, symbol):
         try:
             ticker = self.exchange.fetch_ticker(symbol)
             return {

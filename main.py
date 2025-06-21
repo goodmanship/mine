@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 import click
 from rich.console import Console
-from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
@@ -21,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_symbol_list(symbols: str | None) -> list[str]:
+def get_symbol_list(symbols):
     """Get list of symbols from argument or database."""
     if symbols:
         return [s.strip() for s in symbols.split(",")]
@@ -30,7 +29,7 @@ def get_symbol_list(symbols: str | None) -> list[str]:
         return get_symbols(db)
 
 
-def get_date_range(days: int) -> tuple[datetime, datetime]:
+def get_date_range(days):
     """Get start and end dates for analysis."""
     end_date = datetime.now()
     start_date = end_date - timedelta(days=days)
@@ -49,7 +48,7 @@ def cli(verbose):
 @click.option("--symbols", "-s", help="Comma-separated list of symbols (e.g., BTC/USDT,ETH/USDT)")
 @click.option("--days", "-d", default=30, help="Number of days of historical data to fetch")
 @click.option("--timeframe", "-t", default="1h", help="Timeframe for data (1m, 5m, 15m, 1h, 4h, 1d)")
-def collect(symbols: str, days: int, timeframe: str):
+def collect(symbols, days, timeframe):
     with console.status("[bold green]Initializing database..."):
         init_db()
 
@@ -93,7 +92,7 @@ def collect(symbols: str, days: int, timeframe: str):
 @click.option("--symbols", "-s", help="Comma-separated list of symbols to analyze")
 @click.option("--days", "-d", default=30, help="Number of days to analyze")
 @click.option("--timeframe", "-t", default="1h", help="Timeframe for analysis")
-def analyze(symbols: str, days: int, timeframe: str):
+def analyze(symbols, days, timeframe):
     symbol_list = get_symbol_list(symbols)
 
     if not symbol_list:
@@ -156,7 +155,7 @@ def analyze(symbols: str, days: int, timeframe: str):
 @click.option("--timeframe", "-t", default="1h", help="Timeframe for chart")
 @click.option("--save", help="Save chart to file (e.g., chart.html)")
 @click.option("--no-indicators", is_flag=True, help="Exclude technical indicators")
-def chart(symbol: str, days: int, timeframe: str, save: str, no_indicators: bool):
+def chart(symbol, days, timeframe, save, no_indicators):
     console.print(f"[bold blue]Generating chart for {symbol}...")
 
     analyzer = CryptoAnalyzer()
@@ -186,7 +185,7 @@ def chart(symbol: str, days: int, timeframe: str, save: str, no_indicators: bool
 @click.option("--days", "-d", default=30, help="Number of days for correlation analysis")
 @click.option("--timeframe", "-t", default="1h", help="Timeframe for analysis")
 @click.option("--save", help="Save correlation heatmap to file (e.g., correlation.html)")
-def correlation(symbols: str, days: int, timeframe: str, save: str):
+def correlation(symbols, days, timeframe, save):
     symbol_list = get_symbol_list(symbols)
 
     if not symbol_list:
@@ -210,7 +209,7 @@ def correlation(symbols: str, days: int, timeframe: str, save: str):
         if save:
             console.print(f"[green]Correlation heatmap saved to {save}")
         else:
-            console.print("[green]Correlation heatmap displayed")
+            console.print("[green]Correlation heatmap displayed in browser")
 
     except Exception as e:
         console.print(f"[red]Error generating correlation heatmap: {e}")
@@ -220,64 +219,61 @@ def correlation(symbols: str, days: int, timeframe: str, save: str):
 def status():
     console.print("[bold blue]Application Status[/bold blue]")
 
-    try:
-        with get_db_session() as db:
-            symbols_in_db = get_symbols(db)
+    with get_db_session() as db:
+        symbols = get_symbols(db)
 
-        status_panel = Panel(
-            f"Symbols in database: {len(symbols_in_db)}\n"
-            f"Default symbols: {', '.join(config.DEFAULT_SYMBOLS)}\n"
-            f"Data directory: {config.DATA_DIR}\n"
-            f"Cache directory: {config.CACHE_DIR}",
-            title="Database and Configuration",
-            border_style="green",
-        )
-        console.print(status_panel)
+        if not symbols:
+            console.print("[yellow]No data found in database. Run 'collect' first.")
+            return
 
-        if symbols_in_db:
-            console.print("\n[bold]Latest Data in DB:[/bold]")
-            latest_prices_table = Table(title="Latest Prices")
-            latest_prices_table.add_column("Symbol", style="cyan")
-            latest_prices_table.add_column("Latest Timestamp", style="green")
+        console.print("[green]✓ Database connected")
+        console.print(f"[green]✓ Found {len(symbols)} symbols in database")
 
-            with get_db_session() as db:
-                for symbol in symbols_in_db:
-                    latest_price = get_latest_price(db, symbol)
-                    if latest_price:
-                        latest_prices_table.add_row(symbol, str(latest_price.timestamp))
+        status_table = Table(title="Symbol Status")
+        status_table.add_column("Symbol", style="cyan")
+        status_table.add_column("Latest Price", style="green")
+        status_table.add_column("Last Updated", style="yellow")
 
-            console.print(latest_prices_table)
+        for symbol in symbols[:10]:  # Show first 10 symbols
+            latest = get_latest_price(db, symbol)
+            if latest:
+                status_table.add_row(
+                    symbol,
+                    f"${latest.close_price:,.2f}",
+                    latest.timestamp.strftime("%Y-%m-%d %H:%M"),
+                )
 
-    except Exception as e:
-        console.print(f"[red]Error checking status: {e}")
+        console.print(status_table)
+
+        if len(symbols) > 10:
+            console.print(f"[dim]... and {len(symbols) - 10} more symbols")
 
 
 @cli.command()
 def setup():
-    console.print("[bold blue]Setting up Crypto Data Analysis Tool...[/bold blue]")
+    console.print("[bold blue]Setting up Crypto Data Analysis Tool[/bold blue]")
 
-    config.create_directories()
-    console.print("[green]✓ Created data directories")
+    with console.status("[bold green]Initializing database..."):
+        try:
+            init_db()
+            console.print("[green]✓ Database initialized successfully")
+        except Exception as e:
+            console.print(f"[red]✗ Database initialization failed: {e}")
+            return
 
-    try:
-        init_db()
-        console.print("[green]✓ Database initialized")
-    except Exception as e:
-        console.print(f"[red]✗ Database initialization failed: {e}")
-        return
+    with console.status("[bold green]Creating directories..."):
+        try:
+            config.create_directories()
+            console.print("[green]✓ Directories created successfully")
+        except Exception as e:
+            console.print(f"[red]✗ Directory creation failed: {e}")
+            return
 
-    try:
-        BinanceDataCollector()
-        console.print("[green]✓ Binance connection successful")
-    except Exception as e:
-        console.print(f"[yellow]⚠ Binance connection failed: {e}")
-        console.print("[yellow]You can still use the tool with limited functionality")
-
-    console.print("\n[bold green]Setup completed![/bold green]")
+    console.print("\n[bold green]Setup completed successfully![/bold green]")
     console.print("\nNext steps:")
-    console.print("1. Run 'python main.py collect' to download data")
-    console.print("2. Run 'python main.py analyze' to analyze trends")
-    console.print("3. Run 'python main.py chart --symbol BTC/USDT' to generate charts")
+    console.print("1. Run 'make collect' to gather crypto data")
+    console.print("2. Run 'make chart SYMBOL=BTC/USDT' to generate charts")
+    console.print("3. Run 'make analyze' to analyze the data")
 
 
 if __name__ == "__main__":

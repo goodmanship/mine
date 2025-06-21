@@ -16,33 +16,24 @@ logger = logging.getLogger(__name__)
 
 
 class CryptoAnalyzer:
-    def get_data_as_dataframe(
-        self,
-        symbol,
-        start_date=None,
-        end_date=None,
-        timeframe="1h",
-        limit=None,
-    ):
+    def get_data_as_dataframe(self, symbol, start_date=None, end_date=None, timeframe="1h", limit=None):
         with get_db_session() as db:
             data = get_price_data(db, symbol, start_date, end_date, timeframe, limit)
 
         if not data:
             return pd.DataFrame()
 
-        df = pd.DataFrame(
-            [
-                {
-                    "timestamp": row.timestamp,
-                    "open": row.open_price,
-                    "high": row.high_price,
-                    "low": row.low_price,
-                    "close": row.close_price,
-                    "volume": row.volume,
-                }
-                for row in data
-            ]
-        )
+        df = pd.DataFrame([
+            {
+                "timestamp": row.timestamp,
+                "open": row.open_price,
+                "high": row.high_price,
+                "low": row.low_price,
+                "close": row.close_price,
+                "volume": row.volume,
+            }
+            for row in data
+        ])
 
         df.set_index("timestamp", inplace=True)
         df.sort_index(inplace=True)
@@ -81,13 +72,7 @@ class CryptoAnalyzer:
 
         return df
 
-    def calculate_correlation_matrix(
-        self,
-        symbols,
-        start_date=None,
-        end_date=None,
-        timeframe="1h",
-    ):
+    def calculate_correlation_matrix(self, symbols, start_date=None, end_date=None, timeframe="1h"):
         price_data = {}
 
         for symbol in symbols:
@@ -131,39 +116,20 @@ class CryptoAnalyzer:
         )
 
         fig.add_trace(
-            go.Candlestick(
-                x=df.index,
-                open=df["open"],
-                high=df["high"],
-                low=df["low"],
-                close=df["close"],
-                name="Price",
-            ),
+            go.Candlestick(x=df.index, open=df["open"], high=df["high"], low=df["low"], close=df["close"], name="Price"),
             row=1,
             col=1,
         )
 
         if include_indicators:
             fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df["sma_20"],
-                    mode="lines",
-                    name="SMA 20",
-                    line={"color": "orange", "width": 1},
-                ),
+                go.Scatter(x=df.index, y=df["sma_20"], mode="lines", name="SMA 20", line={"color": "orange", "width": 1}),
                 row=1,
                 col=1,
             )
 
             fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df["sma_50"],
-                    mode="lines",
-                    name="SMA 50",
-                    line={"color": "blue", "width": 1},
-                ),
+                go.Scatter(x=df.index, y=df["sma_50"], mode="lines", name="SMA 50", line={"color": "blue", "width": 1}),
                 row=1,
                 col=1,
             )
@@ -195,21 +161,11 @@ class CryptoAnalyzer:
 
         colors = ["red" if close < open else "green" for close, open in zip(df["close"], df["open"], strict=False)]
 
-        fig.add_trace(
-            go.Bar(x=df.index, y=df["volume"], name="Volume", marker_color=colors),
-            row=2,
-            col=1,
-        )
+        fig.add_trace(go.Bar(x=df.index, y=df["volume"], name="Volume", marker_color=colors), row=2, col=1)
 
         if include_indicators:
             fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df["rsi"],
-                    mode="lines",
-                    name="RSI",
-                    line={"color": "purple", "width": 1},
-                ),
+                go.Scatter(x=df.index, y=df["rsi"], mode="lines", name="RSI", line={"color": "purple", "width": 1}),
                 row=3,
                 col=1,
             )
@@ -230,14 +186,7 @@ class CryptoAnalyzer:
         else:
             fig.show()
 
-    def plot_correlation_heatmap(
-        self,
-        symbols,
-        start_date=None,
-        end_date=None,
-        timeframe="1h",
-        save_path=None,
-    ):
+    def plot_correlation_heatmap(self, symbols, start_date=None, end_date=None, timeframe="1h", save_path=None):
         correlation_matrix = self.calculate_correlation_matrix(symbols, start_date, end_date, timeframe)
 
         if correlation_matrix.empty:
@@ -257,25 +206,14 @@ class CryptoAnalyzer:
             )
         )
 
-        fig.update_layout(
-            title=f"Correlation Matrix ({timeframe})",
-            xaxis_title="Symbols",
-            yaxis_title="Symbols",
-            height=600,
-        )
+        fig.update_layout(title=f"Correlation Matrix ({timeframe})", xaxis_title="Symbols", yaxis_title="Symbols", height=600)
 
         if save_path:
             fig.write_html(save_path)
         else:
             fig.show()
 
-    def generate_summary_statistics(
-        self,
-        symbol,
-        start_date=None,
-        end_date=None,
-        timeframe="1h",
-    ):
+    def generate_summary_statistics(self, symbol, start_date=None, end_date=None, timeframe="1h"):
         df = self.get_data_as_dataframe(symbol, start_date, end_date, timeframe)
 
         if df.empty:
@@ -303,13 +241,7 @@ class CryptoAnalyzer:
             "sma_50": df["sma_50"].iloc[-1] if "sma_50" in df.columns else None,
         }
 
-    def compare_symbols(
-        self,
-        symbols,
-        start_date=None,
-        end_date=None,
-        timeframe="1h",
-    ):
+    def compare_symbols(self, symbols, start_date=None, end_date=None, timeframe="1h"):
         comparison_data = []
 
         for symbol in symbols:

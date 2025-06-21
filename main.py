@@ -13,10 +13,7 @@ from database import get_db_session, get_latest_price, get_symbols, init_db
 
 console = Console()
 
-logging.basicConfig(
-    level=getattr(logging, config.LOG_LEVEL),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+logging.basicConfig(level=getattr(logging, config.LOG_LEVEL), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -199,11 +196,7 @@ def correlation(symbols, days, timeframe, save):
 
     try:
         analyzer.plot_correlation_heatmap(
-            symbols=symbol_list,
-            start_date=start_date,
-            end_date=end_date,
-            timeframe=timeframe,
-            save_path=save,
+            symbols=symbol_list, start_date=start_date, end_date=end_date, timeframe=timeframe, save_path=save
         )
 
         if save:
@@ -237,11 +230,7 @@ def status():
         for symbol in symbols[:10]:  # Show first 10 symbols
             latest = get_latest_price(db, symbol)
             if latest:
-                status_table.add_row(
-                    symbol,
-                    f"${latest.close_price:,.2f}",
-                    latest.timestamp.strftime("%Y-%m-%d %H:%M"),
-                )
+                status_table.add_row(symbol, f"${latest.close_price:,.2f}", latest.timestamp.strftime("%Y-%m-%d %H:%M"))
 
         console.print(status_table)
 

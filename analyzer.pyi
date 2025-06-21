@@ -38,11 +38,7 @@ class CryptoAnalyzer:
         save_path: str | None = None,
     ) -> None: ...
     def generate_summary_statistics(
-        self,
-        symbol: str,
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        timeframe: str = "1h",
+        self, symbol: str, start_date: datetime | None = None, end_date: datetime | None = None, timeframe: str = "1h"
     ) -> dict[str, Any]: ...
     def compare_symbols(
         self,

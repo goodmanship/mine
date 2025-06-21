@@ -39,7 +39,7 @@ packages = ["."]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 120
+line-length = 140
 
 [tool.ruff.lint]
 select = [
@@ -51,11 +51,6 @@ select = [
     "C4", # flake8-comprehensions
     "UP", # pyupgrade
 ]
-ignore = [
-    "E501",  # line too long, handled by black
-    "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
-]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
@@ -63,14 +58,12 @@ ignore = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-skip-magic-trailing-comma = false
 line-ending = "auto"
+preview = true
 
 [tool.black]
 line-length = 120
 target-version = ['py312']
-
-[tool.ty]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

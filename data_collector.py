@@ -33,13 +33,7 @@ class BinanceDataCollector:
     def get_available_symbols(self):
         return list(self.exchange.markets.keys())
 
-    def fetch_ohlcv(
-        self,
-        symbol,
-        timeframe="1h",
-        since=None,
-        limit=None,
-    ):
+    def fetch_ohlcv(self, symbol, timeframe="1h", since=None, limit=None):
         try:
             since_timestamp = None
             if since:
@@ -98,7 +92,7 @@ class BinanceDataCollector:
 
                 self.save_to_database(symbol, df, timeframe)
 
-                time.sleep(0.1)
+                time.sleep(0.1)  # limit to 10 requests/s
 
             except Exception as e:
                 logger.error(f"Error processing {symbol}: {e}")

@@ -53,25 +53,11 @@ def init_db():
         raise
 
 
-def save_price_data(
-    db,
-    symbol,
-    timestamp,
-    open_price,
-    high_price,
-    low_price,
-    close_price,
-    volume,
-    timeframe="1h",
-):
+def save_price_data(db, symbol, timestamp, open_price, high_price, low_price, close_price, volume, timeframe="1h"):
     try:
         existing = (
             db.query(CryptoPrice)
-            .filter(
-                CryptoPrice.symbol == symbol,
-                CryptoPrice.timestamp == timestamp,
-                CryptoPrice.timeframe == timeframe,
-            )
+            .filter(CryptoPrice.symbol == symbol, CryptoPrice.timestamp == timestamp, CryptoPrice.timeframe == timeframe)
             .first()
         )
 
@@ -101,14 +87,7 @@ def save_price_data(
         raise
 
 
-def get_price_data(
-    db,
-    symbol,
-    start_date=None,
-    end_date=None,
-    timeframe="1h",
-    limit=None,
-):
+def get_price_data(db, symbol, start_date=None, end_date=None, timeframe="1h", limit=None):
     query = db.query(CryptoPrice).filter(CryptoPrice.symbol == symbol, CryptoPrice.timeframe == timeframe)
 
     if start_date:

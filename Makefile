@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean lint format check test test-cov setup collect analyze chart correlation status example
+.PHONY: help install install-dev clean lint format check test test-cov setup collect analyze chart correlation status example backtest backtest-custom tune backtest-1year
 
 # Default target
 help: ## Show this help message
@@ -65,6 +65,18 @@ status: ## Show application status
 
 example: ## Run the example script
 	uv run python example.py
+
+backtest: ## Run pair trading backtest (use SYMBOL1=SOL/USDT SYMBOL2=ADA/USDT DAYS=30)
+	uv run python backtester.py
+
+backtest-custom: ## Run custom pair trading backtest
+	uv run python -c "from backtester import PairTradingBacktester; from datetime import datetime, timedelta; bt = PairTradingBacktester(100); end = datetime.now(); start = end - timedelta(days=$(or $(DAYS),30)); portfolio = bt.backtest_mean_reversion('$(or $(SYMBOL1),SOL/USDT)', '$(or $(SYMBOL2),ADA/USDT)', start, end); results = bt.analyze_results(portfolio, '$(or $(SYMBOL1),SOL/USDT)', '$(or $(SYMBOL2),ADA/USDT)'); print('Results:', results)"
+
+tune: ## Tune pair trading parameters
+	uv run python backtest_tune.py
+
+backtest-1year: ## Run 1-year pair trading backtest
+	uv run python backtest_1year.py
 
 # Data collection with options
 collect-symbols: ## Collect data for specific symbols (use SYMBOLS="BTC/USDT,ETH/USDT")

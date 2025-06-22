@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 sys.modules["ccxt"] = MagicMock()
 sys.modules["ccxt.base"] = MagicMock()
 sys.modules["ccxt.base.types"] = MagicMock()
+sys.modules["src.core.database"] = MagicMock()
 
 from src.trade.start_trading import check_prerequisites, get_user_confirmation, main, print_banner  # noqa: E402
 
@@ -36,10 +37,10 @@ class TestStartTrading(unittest.TestCase):
         self.assertIn("BNB/USDT", printed_output)
         self.assertIn("1,000.00", printed_output)
 
-    @patch("src.core.database.get_db_session")
     @patch("src.core.database.get_price_data")
+    @patch("src.core.database.get_db_session")
     @patch("builtins.print")
-    def test_check_prerequisites_success(self, mock_print, mock_get_price_data, mock_get_db_session):
+    def test_check_prerequisites_success(self, mock_print, mock_get_db_session, mock_get_price_data):
         """Test successful prerequisite checking."""
         # Mock database session
         mock_session = Mock()
@@ -74,46 +75,33 @@ class TestStartTrading(unittest.TestCase):
     @patch("src.trade.start_trading.config")
     @patch("builtins.input")
     @patch("builtins.print")
-    def test_get_user_confirmation_yes(self, mock_print, mock_input, mock_config):
-        """Test user confirmation with 'yes' response."""
+    def test_get_user_confirmation_paper_trading_auto_proceed(self, mock_print, mock_input, mock_config):
+        """Test that paper trading auto-proceeds without user input."""
         mock_config.SYMBOL1 = "ADA/USDT"
         mock_config.SYMBOL2 = "BNB/USDT"
         mock_config.INITIAL_CAPITAL = 1000.0
-        mock_config.PAPER_TRADING = True
+        mock_config.PAPER_TRADING = True  # Paper trading
         mock_config.Z_THRESHOLD = 2.0
         mock_config.UPDATE_INTERVAL = 60
 
-        mock_input.return_value = "yes"
-
         result = get_user_confirmation()
 
+        # Should auto-proceed for paper trading
         self.assertTrue(result)
-        mock_input.assert_called_once()
+        # Should NOT prompt for input in paper trading mode
+        mock_input.assert_not_called()
+
+        # Verify paper trading message was displayed
+        printed_output = " ".join([str(call.args[0]) for call in mock_print.call_args_list])
+        self.assertIn("PAPER TRADING MODE", printed_output)
+        self.assertIn("Auto-proceeding (paper trading is safe)", printed_output)
+        self.assertIn("Proceeding with paper trading", printed_output)
 
     @patch("src.trade.start_trading.config")
     @patch("builtins.input")
     @patch("builtins.print")
-    def test_get_user_confirmation_no(self, mock_print, mock_input, mock_config):
-        """Test user confirmation with 'no' response."""
-        mock_config.SYMBOL1 = "ADA/USDT"
-        mock_config.SYMBOL2 = "BNB/USDT"
-        mock_config.INITIAL_CAPITAL = 1000.0
-        mock_config.PAPER_TRADING = True
-        mock_config.Z_THRESHOLD = 2.0
-        mock_config.UPDATE_INTERVAL = 60
-
-        mock_input.return_value = "no"
-
-        result = get_user_confirmation()
-
-        self.assertFalse(result)
-        mock_input.assert_called_once()
-
-    @patch("src.trade.start_trading.config")
-    @patch("builtins.input")
-    @patch("builtins.print")
-    def test_get_user_confirmation_real_trading_mode(self, mock_print, mock_input, mock_config):
-        """Test user confirmation displays different message for real trading."""
+    def test_get_user_confirmation_real_trading_yes(self, mock_print, mock_input, mock_config):
+        """Test user confirmation with 'yes' response for real trading."""
         mock_config.SYMBOL1 = "ADA/USDT"
         mock_config.SYMBOL2 = "BNB/USDT"
         mock_config.INITIAL_CAPITAL = 1000.0
@@ -126,11 +114,63 @@ class TestStartTrading(unittest.TestCase):
         result = get_user_confirmation()
 
         self.assertTrue(result)
+        # Should prompt for real trading confirmation
+        mock_input.assert_called_once()
+
+        # Check the prompt text
+        call_args = mock_input.call_args[0][0]
+        self.assertIn("Are you sure you want to trade with real money?", call_args)
 
         # Verify real trading warnings were displayed
         printed_output = " ".join([str(call.args[0]) for call in mock_print.call_args_list])
         self.assertIn("REAL TRADING MODE", printed_output)
         self.assertIn("REAL MONEY WILL BE USED", printed_output)
+
+    @patch("src.trade.start_trading.config")
+    @patch("builtins.input")
+    @patch("builtins.print")
+    def test_get_user_confirmation_real_trading_no(self, mock_print, mock_input, mock_config):
+        """Test user confirmation with 'no' response for real trading."""
+        mock_config.SYMBOL1 = "ADA/USDT"
+        mock_config.SYMBOL2 = "BNB/USDT"
+        mock_config.INITIAL_CAPITAL = 1000.0
+        mock_config.PAPER_TRADING = False  # Real trading
+        mock_config.Z_THRESHOLD = 2.0
+        mock_config.UPDATE_INTERVAL = 60
+
+        mock_input.return_value = "no"
+
+        result = get_user_confirmation()
+
+        self.assertFalse(result)
+        # Should prompt for real trading confirmation
+        mock_input.assert_called_once()
+
+    @patch("src.trade.start_trading.config")
+    @patch("builtins.input")
+    @patch("builtins.print")
+    def test_get_user_confirmation_real_trading_various_responses(self, mock_print, mock_input, mock_config):
+        """Test various user responses for real trading confirmation."""
+        mock_config.SYMBOL1 = "ADA/USDT"
+        mock_config.SYMBOL2 = "BNB/USDT"
+        mock_config.INITIAL_CAPITAL = 1000.0
+        mock_config.PAPER_TRADING = False  # Real trading
+        mock_config.Z_THRESHOLD = 2.0
+        mock_config.UPDATE_INTERVAL = 60
+
+        # Test various positive responses
+        for response in ["yes", "y", "YES", "Y"]:
+            with self.subTest(response=response):
+                mock_input.return_value = response
+                result = get_user_confirmation()
+                self.assertTrue(result, f"Should return True for response: {response}")
+
+        # Test various negative responses
+        for response in ["no", "n", "NO", "N", "maybe", "", "quit"]:
+            with self.subTest(response=response):
+                mock_input.return_value = response
+                result = get_user_confirmation()
+                self.assertFalse(result, f"Should return False for response: {response}")
 
     @patch("src.trade.start_trading.asyncio")
     @patch("src.trade.start_trading.time.sleep")

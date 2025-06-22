@@ -81,13 +81,14 @@ def get_user_confirmation():
         print("\n🧪 PAPER TRADING MODE")
         print("   • No real money will be used")
         print("   • This is for testing and learning purposes")
+        print("   • Auto-proceeding (paper trading is safe)")
     else:
         print("\n💰 REAL TRADING MODE")
         print("   • REAL MONEY WILL BE USED")
         print("   • TRADES WILL BE EXECUTED ON THE EXCHANGE")
         print("   • YOU COULD LOSE MONEY")
 
-    # Confirm settings
+    # Show trading configuration
     print("\n📋 Trading Configuration:")
     print(f"   Symbols: {config.SYMBOL1} vs {config.SYMBOL2}")  # type: ignore
     print(f"   Capital: ${config.INITIAL_CAPITAL:,.2f}")  # type: ignore
@@ -95,9 +96,14 @@ def get_user_confirmation():
     print(f"   Z-Threshold: {config.Z_THRESHOLD}")  # type: ignore
     print(f"   Update Interval: {config.UPDATE_INTERVAL}s")  # type: ignore
 
-    # Get confirmation
-    response = input("\n❓ Do you want to continue? (yes/no): ").strip().lower()
-    return response in ["yes", "y"]
+    # Only require confirmation for real trading
+    if config.PAPER_TRADING:  # type: ignore
+        print("\n✅ Proceeding with paper trading...")
+        return True
+    else:
+        # Real trading requires explicit confirmation
+        response = input("\n❓ Are you sure you want to trade with real money? (yes/no): ").strip().lower()
+        return response in ["yes", "y"]
 
 
 def main():
@@ -113,6 +119,7 @@ def main():
         return
 
     print("\n🚀 Initializing trader...")
+
     trader = LivePairTrader(
         symbol1=config.SYMBOL1,  # type: ignore
         symbol2=config.SYMBOL2,  # type: ignore
@@ -120,6 +127,7 @@ def main():
         lookback_period=config.LOOKBACK_PERIOD,  # type: ignore
         z_threshold=config.Z_THRESHOLD,  # type: ignore
         paper_trading=config.PAPER_TRADING,  # type: ignore
+        enable_chart=True,  # Enable live chart by default
     )
 
     # Load previous state if exists
@@ -129,6 +137,7 @@ def main():
     print("\n🎯 Starting trading loop...")
     print("   Press Ctrl+C to stop trading")
     print("   Trading state is automatically saved to trading_state.json")
+    print("   🔄 Z-score will be warmed up with recent market data on startup")
 
     time.sleep(2)  # Give user time to read
 

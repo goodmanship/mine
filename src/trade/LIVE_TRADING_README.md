@@ -19,6 +19,7 @@ Our comprehensive backtesting showed:
 - **Performance tracking** and logging
 - **State persistence** (resume after interruption)
 - **Risk management** features
+- **Live chart display**
 
 ## 🛠️ Setup
 
@@ -215,4 +216,47 @@ For issues or questions:
 
 ---
 
-**Remember**: Always start with paper trading and only move to real trading after thorough testing and understanding of the risks involved! 
+**Remember**: Always start with paper trading and only move to real trading after thorough testing and understanding of the risks involved!
+
+## Live Chart Feature 📈
+
+The system now includes a **comprehensive real-time chart display** that updates every minute alongside the trading algorithm. The chart shows both statistical analysis and underlying price movements.
+
+### Chart Layout:
+The display consists of **two synchronized subplots** sharing the same time axis:
+
+#### 🔝 **Top Chart: Z-Score Analysis**
+- **Z-Score Line**: Blue line showing the current spread z-score over time
+- **Threshold Lines**: Red dashed lines at +/- z_threshold showing trading triggers
+- **Trade Markers**: 
+  - 🟢 **Green triangles (▲)**: Long spread trades (buy symbol1, sell symbol2)
+  - 🔴 **Red triangles (▼)**: Short spread trades (sell symbol1, buy symbol2)
+
+#### 🔽 **Bottom Chart: Price Movements**
+- **Symbol1 Price**: Green line showing price movements of your first trading symbol
+- **Symbol2 Price**: Orange line showing price movements of your second trading symbol
+- **Shared Time Axis**: Perfectly aligned with z-score chart for correlation analysis
+
+### 💡 What You Can See:
+- **Trade Timing**: Exact correlation between z-score thresholds and trade execution
+- **Price Relationships**: How individual asset prices create the spread dynamics
+- **Mean Reversion**: Visual confirmation of prices returning to historical relationship
+- **Market Patterns**: Identify trending vs. ranging market conditions
+- **Strategy Performance**: See how price movements affect your positions
+
+### 🎯 Key Insights:
+- **Spread Convergence**: Watch prices converge/diverge in real-time
+- **Volatility Patterns**: Identify high/low volatility periods
+- **Correlation Breaks**: Spot when normal price relationships break down
+- **Entry/Exit Timing**: See optimal trade timing in historical context
+
+### Example Scenarios:
+1. **Strong Signal**: Z-score hits -2.5 → prices show clear divergence → algorithm buys the spread
+2. **Mean Reversion**: After trade, watch prices gradually return to normal relationship
+3. **False Signals**: See when z-score triggers but prices continue trending (rare but important to spot)
+
+### Technical Details:
+- **Update Frequency**: Both charts refresh every 60 seconds
+- **History**: Displays last 100 data points (≈ 1.7 hours of data)
+- **Scaling**: Automatic scaling for optimal visibility of both price ranges
+- **Performance**: Optimized for smooth real-time updates 

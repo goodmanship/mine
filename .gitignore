@@ -7,7 +7,7 @@ wheels/
 *.egg-info
 
 # Test stuff
-.coverage
+.coverage*
 coverage.xml
 
 # Env vars

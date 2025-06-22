@@ -7,6 +7,8 @@ load_dotenv()
 
 
 class Config:
+    """Application configuration settings."""
+
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://localhost:5432/crypto_data")
 
     BINANCE_API_KEY: str = os.getenv("BINANCE_API_KEY", "")
@@ -32,13 +34,13 @@ class Config:
     MAX_POSITION_SIZE: float = 0.5  # Maximum 50% of capital per position
 
     # Strategy parameters
-    LOOKBACK_PERIOD: int = 20  # Period for calculating z-score
+    LOOKBACK_PERIOD: int = 20  # Period for calculating z-score (20 minutes)
     Z_THRESHOLD: float = 2.0  # Z-score threshold for trading signals
     MIN_SPREAD_STD: float = 0.001  # Minimum spread standard deviation to trade
 
     # Trading settings
-    PAPER_TRADING: bool = True  # Set to False for real trading (BE CAREFUL!)
-    UPDATE_INTERVAL: int = 60  # Update interval in seconds
+    PAPER_TRADING: bool = True  # Safe mode: no real trading
+    UPDATE_INTERVAL: int = 60  # Update every 60 seconds
     MAX_TRADES_PER_DAY: int = 10  # Maximum trades per day to avoid overtrading
 
     # Exchange settings

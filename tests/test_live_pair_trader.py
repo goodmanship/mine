@@ -16,14 +16,30 @@ from src.trade.live_pair_trader import LivePairTrader  # noqa: E402
 
 
 class TestLivePairTrader(unittest.TestCase):
-    def setUp(self):
-        """Set up test fixtures."""
-        # Mock environment variables
+    @classmethod
+    def setUpClass(cls):
+        """Set up class-level mocks for better performance."""
+        # Mock environment variables once
         os.environ["BINANCE_API_KEY"] = "test_key"
         os.environ["BINANCE_SECRET"] = "test_secret"
 
-        # Create trader instance
-        self.trader = LivePairTrader(symbol1="ADA/USDT", symbol2="BNB/USDT", initial_capital=1000.0, z_threshold=2.0, paper_trading=True)
+        # Create a persistent mock exchange for reuse
+        cls.mock_exchange = Mock()
+        cls.mock_exchange.fetch_ticker.return_value = {"last": 0.5}
+
+    def setUp(self):
+        """Set up test fixtures."""
+        # Create trader instance with chart disabled for speed
+        with patch("src.trade.live_pair_trader.ccxt") as mock_ccxt:
+            mock_ccxt.binanceus.return_value = self.mock_exchange
+            self.trader = LivePairTrader(
+                symbol1="ADA/USDT",
+                symbol2="BNB/USDT",
+                initial_capital=1000.0,
+                z_threshold=2.0,
+                paper_trading=True,
+                enable_chart=False,  # Disable chart for faster tests
+            )
 
     @patch("src.trade.live_pair_trader.ccxt")
     def test_initial_portfolio_state(self, mock_ccxt):
@@ -32,7 +48,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange.load_markets.return_value = True
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
 
         self.assertEqual(trader.portfolio["cash"], 1000.0)
         self.assertEqual(trader.portfolio["total_value"], 1000.0)
@@ -47,7 +63,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange.load_markets.return_value = True
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
 
         # Test prices
         prices = {"ADA/USDT": 0.5, "BNB/USDT": 500.0}
@@ -78,7 +94,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange.load_markets.return_value = True
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
 
         # Simulate a state where cash is 0 but positions have value (total portfolio = $500)
         trader.portfolio["cash"] = 0.0
@@ -101,7 +117,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange.load_markets.return_value = True
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
 
         # Simulate multiple trades with changing prices
         prices_sequence = [
@@ -131,7 +147,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange.load_markets.return_value = True
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
 
         # Set up a known portfolio state
         trader.portfolio["cash"] = 100.0
@@ -155,7 +171,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange.fetch_ticker.side_effect = [{"last": 0.5}, {"last": 500.0}]
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
         # Replace the exchange instance with our mock
         trader.exchange = mock_exchange
 
@@ -172,7 +188,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange.fetch_ticker.side_effect = Exception("Network error")
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
         # Replace the exchange instance with our mock
         trader.exchange = mock_exchange
 
@@ -182,7 +198,7 @@ class TestLivePairTrader(unittest.TestCase):
 
     def test_calculate_spread(self):
         """Test spread calculation."""
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
 
         # Normal case
         prices = {"ADA/USDT": 0.5, "BNB/USDT": 500.0}
@@ -198,7 +214,7 @@ class TestLivePairTrader(unittest.TestCase):
 
     def test_calculate_z_score(self):
         """Test z-score calculation."""
-        trader = LivePairTrader(lookback_period=5)
+        trader = LivePairTrader(lookback_period=5, enable_chart=False)
 
         # Add some price history
         trader.price_history["ADA/USDT"] = [0.4, 0.45, 0.5, 0.55, 0.6]
@@ -223,7 +239,7 @@ class TestLivePairTrader(unittest.TestCase):
 
     def test_generate_signal(self):
         """Test signal generation."""
-        trader = LivePairTrader(z_threshold=2.0)
+        trader = LivePairTrader(z_threshold=2.0, enable_chart=False)
 
         # Test long signal
         self.assertEqual(trader.generate_signal(-2.5), 1)
@@ -242,7 +258,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange = Mock()
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
 
         # Set up positions
         trader.portfolio["cash"] = 200.0
@@ -270,7 +286,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange = Mock()
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
         initial_cash = trader.portfolio["cash"]
 
         trader.close_positions({})
@@ -284,7 +300,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange = Mock()
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
         trader.trade_count = 5
 
         # Add some mock trades
@@ -304,7 +320,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange = Mock()
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
         trader.portfolio["cash"] = 800.0
 
         # With empty prices, should return only cash
@@ -317,7 +333,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange = Mock()
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
         prices = {"ADA/USDT": 0.5, "BNB/USDT": 500.0}
 
         result = trader.execute_paper_trade(0, prices)
@@ -331,7 +347,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange = Mock()
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
 
         # Mock calculate_position_sizes to raise an exception
         with patch.object(trader, "calculate_position_sizes", side_effect=Exception("Test error")):
@@ -340,7 +356,7 @@ class TestLivePairTrader(unittest.TestCase):
 
     def test_save_and_load_state(self):
         """Test state saving and loading."""
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
 
         # Modify some state
         trader.portfolio["cash"] = 800.0
@@ -382,7 +398,7 @@ class TestLivePairTrader(unittest.TestCase):
 
     def test_load_state_file_not_found(self):
         """Test loading state when file doesn't exist."""
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
 
         with patch("builtins.open", side_effect=FileNotFoundError):
             trader.load_state()  # Should not crash
@@ -392,7 +408,7 @@ class TestLivePairTrader(unittest.TestCase):
 
     def test_load_state_json_error(self):
         """Test loading state with JSON error."""
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
 
         with patch("builtins.open", mock_open(read_data="invalid json")):
             trader.load_state()  # Should not crash
@@ -406,7 +422,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange = Mock()
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader(initial_capital=1000.0)
+        trader = LivePairTrader(initial_capital=1000.0, enable_chart=False)
         trader.portfolio["cash"] = 30.0  # Below $50 threshold
 
         prices = {"ADA/USDT": 0.5, "BNB/USDT": 500.0}
@@ -423,7 +439,7 @@ class TestLivePairTrader(unittest.TestCase):
         mock_exchange = Mock()
         mock_ccxt.binanceus.return_value = mock_exchange
 
-        trader = LivePairTrader()
+        trader = LivePairTrader(enable_chart=False)
 
         prices = {"ADA/USDT": 0.0, "BNB/USDT": 500.0}
         position_sizes = trader.calculate_position_sizes(prices, 1000.0)

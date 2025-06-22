@@ -76,13 +76,6 @@ def check_prerequisites():
 
 
 def get_user_confirmation():
-    """Get user confirmation before starting trading."""
-    print("\n⚠️  IMPORTANT DISCLAIMERS:")
-    print("   • This is experimental software")
-    print("   • Past performance does not guarantee future results")
-    print("   • You could lose money, even in paper trading mode")
-    print("   • Please review the code and test thoroughly before using real money")
-
     # Show current mode
     if config.PAPER_TRADING:  # type: ignore
         print("\n🧪 PAPER TRADING MODE")
@@ -101,16 +94,6 @@ def get_user_confirmation():
     print(f"   Mode: {'Paper Trading' if config.PAPER_TRADING else 'Real Trading'}")  # type: ignore
     print(f"   Z-Threshold: {config.Z_THRESHOLD}")  # type: ignore
     print(f"   Update Interval: {config.UPDATE_INTERVAL}s")  # type: ignore
-
-    if config.PAPER_TRADING:  # type: ignore
-        print("\n⚠️  WARNING: This is PAPER TRADING mode.")
-        print("   No real money will be traded.")
-        print("   Results are simulated and may not reflect real trading conditions.")
-    else:
-        print("\n🚨 DANGER: This is REAL TRADING mode!")
-        print("   Real money will be used for trades.")
-        print("   You could lose significant amounts of money.")
-        print("   Make sure you understand the risks!")
 
     # Get confirmation
     response = input("\n❓ Do you want to continue? (yes/no): ").strip().lower()
@@ -145,7 +128,7 @@ def main():
 
     print("\n🎯 Starting trading loop...")
     print("   Press Ctrl+C to stop trading")
-    print("   Trading state is automatically saved")
+    print("   Trading state is automatically saved to trading_state.json")
 
     time.sleep(2)  # Give user time to read
 

@@ -6,8 +6,18 @@ dist/
 wheels/
 *.egg-info
 
+# Test stuff
 .coverage
 coverage.xml
+
+# Env vars
 .env
+
+# Virtual env
 .venv
+
+# Logs
 *.log
+
+# State storage for live algo
+trading_state.json

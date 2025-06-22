@@ -204,8 +204,9 @@ class LivePairTrader:
                 self.portfolio["cash"] += net_cash_change
                 self.current_position = 1
 
-                logger.info(f"PAPER TRADE: Long spread - Buy {self.symbol1}, Sell {self.symbol2}")
-                logger.info(f"Cash change: ${net_cash_change:.2f}, New cash: ${self.portfolio['cash']:.2f}")
+                long_spread_log = f"📈 TRADE: Long spread - Buy {self.symbol1.split('/')[0]}, "
+                long_spread_log += f"Sell {self.symbol2.split('/')[0]} | Cash: ${net_cash_change:+.2f}"
+                print(long_spread_log)
 
             elif signal == -1:  # Short spread
                 # Sell symbol1 (provides money), buy symbol2 (costs money)
@@ -216,8 +217,9 @@ class LivePairTrader:
                 self.portfolio["cash"] += net_cash_change
                 self.current_position = -1
 
-                logger.info(f"PAPER TRADE: Short spread - Sell {self.symbol1}, Buy {self.symbol2}")
-                logger.info(f"Cash change: ${net_cash_change:.2f}, New cash: ${self.portfolio['cash']:.2f}")
+                short_spread_log = f"📉 TRADE: Short spread - Sell {self.symbol1.split('/')[0]}, "
+                short_spread_log += f"Buy {self.symbol2.split('/')[0]} | Cash: ${net_cash_change:+.2f}"
+                print(short_spread_log)
 
             # Record trade
             trade = {
@@ -255,7 +257,7 @@ class LivePairTrader:
         self.portfolio["positions"] = {self.symbol1: 0.0, self.symbol2: 0.0}
         self.current_position = 0
 
-        logger.info(f"Closed all positions. Cash from positions: ${cash_from_positions:.2f}, Total cash: ${self.portfolio['cash']:.2f}")
+        print(f"🔄 CLOSE: All positions closed | Cash recovered: ${cash_from_positions:+.2f}")
 
     def calculate_portfolio_value(self, prices: dict[str, float]) -> float:
         """Calculate total portfolio value."""
@@ -286,34 +288,86 @@ class LivePairTrader:
             self.performance["win_rate"] = (winning_trades / self.trade_count) * 100
 
     def print_status(self, prices: dict[str, float], z_score: float, signal: int):
-        """Print current trading status."""
+        """Print current trading status in a sleek, dynamic format."""
         current_value = self.calculate_portfolio_value(prices)
 
-        print("\n" + "=" * 60)
-        print(f"LIVE PAIR TRADING STATUS - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 60)
-        print(f"Symbols: {self.symbol1} vs {self.symbol2}")
-        print(f"Current Prices: {self.symbol1}: ${prices.get(self.symbol1, 0):.4f}, {self.symbol2}: ${prices.get(self.symbol2, 0):.4f}")
-        print(f"Z-Score: {z_score:.3f}")
-        print(f"Signal: {signal} ({'Long' if signal == 1 else 'Short' if signal == -1 else 'Neutral'})")
-        print(f"Current Position: {self.current_position}")
-        print(f"Portfolio Value: ${current_value:,.2f}")
-        print(f"P&L: ${self.portfolio['pnl']:+,.2f} ({self.performance['total_return']:+.2f}%)")
-        print(f"Total Trades: {self.trade_count}")
-        print(f"Cash: ${self.portfolio['cash']:,.2f}")
-        print(f"Positions: {self.portfolio['positions']}")
-        print("=" * 60)
+        # ANSI escape codes for colors and formatting
+        GREEN = "\033[92m"
+        RED = "\033[91m"
+        YELLOW = "\033[93m"
+        BLUE = "\033[94m"
+        CYAN = "\033[96m"
+        WHITE = "\033[97m"
+        BOLD = "\033[1m"
+        RESET = "\033[0m"
+        CLEAR_LINE = "\033[2K"
+        MOVE_UP = "\033[F"
+
+        # Determine colors based on values
+        pnl_color = GREEN if self.portfolio["pnl"] >= 0 else RED
+        signal_color = GREEN if signal == 1 else RED if signal == -1 else YELLOW
+
+        # Signal emoji and text
+        signal_emoji = "🟢" if signal == 1 else "🔴" if signal == -1 else "⚪"
+        signal_text = "LONG" if signal == 1 else "SHORT" if signal == -1 else "NEUTRAL"
+
+        # Position emoji
+        pos_emoji = "📈" if self.current_position == 1 else "📉" if self.current_position == -1 else "💤"
+
+        # Clear previous lines (move up and clear if not first run)
+        if hasattr(self, "_status_printed"):
+            print(f"{MOVE_UP}{CLEAR_LINE}" * 3, end="")
+
+        # Print compact status in 3 lines
+        timestamp = datetime.now().strftime("%H:%M:%S")
+
+        # Line 1: Prices and Z-Score
+        print(
+            f"{CYAN}[{timestamp}]{RESET} 💰 {BOLD}{self.symbol1.split('/')[0]}{RESET}: ${prices.get(self.symbol1, 0):.4f} | "
+            f"{BOLD}{self.symbol2.split('/')[0]}{RESET}: ${prices.get(self.symbol2, 0):.4f} | "
+            f"📊 Z-Score: {BLUE}{z_score:+.3f}{RESET}"
+        )
+
+        # Line 2: Signal, Position, and Portfolio
+        print(
+            f"{signal_emoji} Signal: {signal_color}{BOLD}{signal_text}{RESET} | "
+            f"{pos_emoji} Position: {self.current_position} | "
+            f"💼 Portfolio: {WHITE}${current_value:,.2f}{RESET} | "
+            f"P&L: {pnl_color}{BOLD}{self.portfolio['pnl']:+.2f}{RESET} "
+            f"({pnl_color}{self.performance['total_return']:+.2f}%{RESET})"
+        )
+
+        # Line 3: Trading Stats
+        cash_pct = (self.portfolio["cash"] / current_value * 100) if current_value > 0 else 0
+        ada_pos = self.portfolio["positions"].get(self.symbol1, 0)
+        bnb_pos = self.portfolio["positions"].get(self.symbol2, 0)
+
+        print(
+            f"💵 Cash: ${self.portfolio['cash']:,.2f} ({cash_pct:.1f}%) | "
+            f"🪙 {self.symbol1.split('/')[0]}: {ada_pos:+.2f} | "
+            f"🟡 {self.symbol2.split('/')[0]}: {bnb_pos:+.2f} | "
+            f"📋 Trades: {self.trade_count}"
+        )
+
+        # Mark that we've printed status (for clearing next time)
+        self._status_printed = True
 
     async def run_trading_loop(self, update_interval: int = 60):
         """Main trading loop."""
         logger.info("Starting live pair trading loop...")
+
+        # Print initial header
+        print(f"\n🚀 {self.symbol1} vs {self.symbol2} LIVE PAPER TRADING")
+        print("=" * 60)
+        print("📊 Updates every 60 seconds | Press Ctrl+C to stop")
+        print("=" * 60)
 
         while True:
             try:
                 # Get current prices
                 prices = self.get_current_prices()
                 if not prices:
-                    logger.warning("Could not fetch prices, retrying...")
+                    print("⚠️  Could not fetch prices, retrying...")
                     await asyncio.sleep(update_interval)
                     continue
 
@@ -334,7 +388,10 @@ class LivePairTrader:
 
                 # Execute trade if signal changes
                 if signal != self.current_position:
-                    self.execute_paper_trade(signal, prices)
+                    trade_executed = self.execute_paper_trade(signal, prices)
+                    if trade_executed:
+                        # Add a newline after trade execution to separate from status updates
+                        print()
 
                 # Update performance
                 current_value = self.calculate_portfolio_value(prices)
@@ -350,9 +407,11 @@ class LivePairTrader:
                 await asyncio.sleep(update_interval)
 
             except KeyboardInterrupt:
+                print("\n\n🛑 Trading stopped by user")
                 logger.info("Trading loop interrupted by user")
                 break
             except Exception as e:
+                print(f"\n💥 Error: {e}")
                 logger.error(f"Error in trading loop: {e}")
                 await asyncio.sleep(update_interval)
 

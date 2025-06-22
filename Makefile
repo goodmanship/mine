@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean lint format check test test-cov setup collect analyze chart correlation status example backtest backtest-custom tune backtest-1year backtest-live
+.PHONY: help install install-dev clean lint format check test test-cov setup collect analyze chart correlation status example backtest backtest-custom tune backtest-1year backtest-live paper-trade
 
 # Default target
 help: ## Show this help message
@@ -65,6 +65,15 @@ status: ## Show application status
 
 example: ## Run the example script
 	uv run python example.py
+
+# Trading commands
+paper-trade: ## Start live paper trading (ADA/USDT vs BNB/USDT)
+	@echo "🚀 Starting Live Paper Trading System..."
+	@echo "📊 Trading Pair: ADA/USDT vs BNB/USDT"
+	@echo "💰 Initial Capital: $1000 (Paper Money)"
+	@echo "⚠️  Press Ctrl+C to stop trading"
+	@echo ""
+	uv run python src/trade/start_trading.py
 
 backtest: ## Run pair trading backtest (use SYMBOL1=SOL/USDT SYMBOL2=ADA/USDT DAYS=30)
 	uv run python -c "from src.backtest.backtester import main; main()"
@@ -154,4 +163,5 @@ usage: ## Show example usage commands
 	@echo "  make chart SYMBOL=\"BTC/USDT\"  # Generate BTC chart"
 	@echo "  make chart-save SYMBOL=\"BTC/USDT\" SAVE=\"btc.html\"  # Save chart to file"
 	@echo "  make correlation              # Generate correlation heatmap"
-	@echo "  make status                   # Check application status" 
+	@echo "  make status                   # Check application status"
+	@echo "  make paper-trade              # Start live paper trading" 

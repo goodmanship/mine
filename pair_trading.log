@@ -1,0 +1,5 @@
+2025-06-21 21:55:40,845 - INFO - Initialized LivePairTrader: ADA/USDT vs BNB/USDT
+2025-06-21 21:55:40,846 - INFO - Initial Capital: $1,000.00
+2025-06-21 21:55:40,846 - INFO - Paper Trading: True
+2025-06-21 21:55:40,846 - INFO - No previous state found, starting fresh
+2025-06-21 21:55:40,846 - INFO - Starting live pair trading loop...

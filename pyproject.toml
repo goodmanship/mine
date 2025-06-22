@@ -73,3 +73,23 @@ addopts = [
     "--cov-report=html",
     "--cov-report=xml"
 ]
+
+[tool.coverage.run]
+omit = [
+    "tests/*",
+    "*/test_*",
+    "setup.py",
+    "*/site-packages/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:"
+]

@@ -2,9 +2,9 @@
 import logging
 from datetime import datetime, timedelta
 
-from analyzer import CryptoAnalyzer
-from data_collector import BinanceDataCollector
-from database import get_db_session, get_symbols, init_db
+from src.analyze.analyzer import CryptoAnalyzer
+from src.core.database import get_db_session, get_symbols, init_db
+from src.data.data_collector import BinanceDataCollector
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

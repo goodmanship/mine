@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean lint format check test test-cov setup collect analyze chart correlation status example backtest backtest-custom tune backtest-1year
+.PHONY: help install install-dev clean lint format check test test-cov setup collect analyze chart correlation status example backtest backtest-custom tune backtest-1year backtest-live
 
 # Default target
 help: ## Show this help message
@@ -28,6 +28,9 @@ lint: ## Run ruff linter
 format: ## Format code with ruff
 	uv run ruff format .
 
+test:
+	uv run pytest tests/
+
 check: ## Run all code quality checks
 	uv run ruff check .
 	uv run ruff format --check .
@@ -38,45 +41,45 @@ fix: ## Fix code with ruff
 	uv run ruff format .
 
 # Testing
-test: ## Run tests
-	uv run pytest
-
 test-cov: ## Run tests with coverage
 	uv run pytest --cov=. --cov-report=html --cov-report=term-missing
 
 # Application commands
 setup: ## Initial setup for the application
-	uv run python main.py setup
+	uv run python src/trade/data_collector.py setup
 
 collect: ## Collect crypto data from Binance
-	uv run python main.py collect
+	uv run python src/trade/data_collector.py
 
 analyze: ## Analyze collected data
-	uv run python main.py analyze
+	uv run python src/analyze/correlation_full_year.py
 
 chart: ## Generate price charts (use SYMBOL=BTC/USDT to specify symbol)
-	uv run python main.py chart --symbol $(or $(SYMBOL),BTC/USDT)
+	uv run python src/analyze/plot_all_prices.py
 
 correlation: ## Generate correlation heatmap
-	uv run python main.py correlation
+	uv run python src/analyze/correlation_full_year.py
 
 status: ## Show application status
-	uv run python main.py status
+	uv run python src/analyze/check_db.py
 
 example: ## Run the example script
 	uv run python example.py
 
 backtest: ## Run pair trading backtest (use SYMBOL1=SOL/USDT SYMBOL2=ADA/USDT DAYS=30)
-	uv run python backtester.py
+	uv run python -c "from src.backtest.backtester import main; main()"
+
+backtest-live: ## Run backtest with fixed LivePairTrader algorithm (SYMBOL1=ADA/USDT SYMBOL2=BNB/USDT DAYS=30 Z_THRESHOLD=2.0)
+	uv run python src/backtest/live_trader_backtest.py --symbol1 "$(or $(SYMBOL1),ADA/USDT)" --symbol2 "$(or $(SYMBOL2),BNB/USDT)" --days $(or $(DAYS),30) --z-threshold $(or $(Z_THRESHOLD),2.0) --lookback $(or $(LOOKBACK),20)
 
 backtest-custom: ## Run custom pair trading backtest
-	uv run python -c "from backtester import PairTradingBacktester; from datetime import datetime, timedelta; bt = PairTradingBacktester(100); end = datetime.now(); start = end - timedelta(days=$(or $(DAYS),30)); portfolio = bt.backtest_mean_reversion('$(or $(SYMBOL1),SOL/USDT)', '$(or $(SYMBOL2),ADA/USDT)', start, end); results = bt.analyze_results(portfolio, '$(or $(SYMBOL1),SOL/USDT)', '$(or $(SYMBOL2),ADA/USDT)'); print('Results:', results)"
+	uv run python -c "import sys; sys.path.append('.'); from src.backtest.backtester import PairTradingBacktester; from datetime import datetime, timedelta; bt = PairTradingBacktester(100); end = datetime.now(); start = end - timedelta(days=$(or $(DAYS),30)); portfolio = bt.backtest_mean_reversion('$(or $(SYMBOL1),SOL/USDT)', '$(or $(SYMBOL2),ADA/USDT)', start, end); results = bt.analyze_results(portfolio, '$(or $(SYMBOL1),SOL/USDT)', '$(or $(SYMBOL2),ADA/USDT)'); print('Results:', results)"
 
 tune: ## Tune pair trading parameters
-	uv run python backtest_tune.py
+	uv run python src/backtest/backtest_tune.py
 
 backtest-1year: ## Run 1-year pair trading backtest
-	uv run python backtest_1year.py
+	uv run python src/backtest/backtest_1year.py
 
 # Data collection with options
 collect-symbols: ## Collect data for specific symbols (use SYMBOLS="BTC/USDT,ETH/USDT")

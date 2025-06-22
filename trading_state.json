@@ -1,22 +1,75 @@
 {
   "portfolio": {
-    "cash": 1000.0,
+    "cash": 0.0,
     "positions": {
-      "ADA/USDT": 0.0,
-      "BNB/USDT": 0.0
+      "ADA/USDT": 3.220116803332241e-05,
+      "BNB/USDT": -2.7874282788990338e-08
     },
-    "total_value": 1000.0,
-    "trades": [],
-    "pnl": 0.0
+    "total_value": -1.1823060448753992e-07,
+    "trades": [
+      {
+        "timestamp": "2025-06-21 23:35:50.385299",
+        "signal": -1,
+        "prices": {
+          "ADA/USDT": 0.5545,
+          "BNB/USDT": 631.54
+        },
+        "positions": {
+          "ADA/USDT": -901.7132551848513,
+          "BNB/USDT": 0.7917154891218292
+        },
+        "portfolio_value": 0.0
+      },
+      {
+        "timestamp": "2025-06-21 23:42:57.535497",
+        "signal": 1,
+        "prices": {
+          "ADA/USDT": 0.5491,
+          "BNB/USDT": 630.36
+        },
+        "positions": {
+          "ADA/USDT": 3.583160900413773,
+          "BNB/USDT": -0.0031212539666495382
+        },
+        "portfolio_value": 0.0
+      },
+      {
+        "timestamp": "2025-06-22 08:01:56.560627",
+        "signal": -1,
+        "prices": {
+          "ADA/USDT": 0.5497,
+          "BNB/USDT": 628.77
+        },
+        "positions": {
+          "ADA/USDT": -0.006469611012571359,
+          "BNB/USDT": 5.656035074209132e-06
+        },
+        "portfolio_value": 4.336808689942018e-19
+      },
+      {
+        "timestamp": "2025-06-22 08:20:27.949237",
+        "signal": 1,
+        "prices": {
+          "ADA/USDT": 0.5403,
+          "BNB/USDT": 624.17
+        },
+        "positions": {
+          "ADA/USDT": 3.220116803332241e-05,
+          "BNB/USDT": -2.7874282788990338e-08
+        },
+        "portfolio_value": 0.0
+      }
+    ],
+    "pnl": -1000.0000001182306
   },
   "performance": {
-    "total_return": 0.0,
+    "total_return": -100.00000001182305,
     "sharpe_ratio": 0.0,
     "max_drawdown": 0.0,
     "win_rate": 0.0,
-    "total_trades": 0
+    "total_trades": 4
   },
-  "current_position": 0,
-  "trade_count": 0,
-  "timestamp": "2025-06-21T21:57:45.316069"
+  "current_position": 1,
+  "trade_count": 4,
+  "timestamp": "2025-06-22T09:43:04.329519"
 }

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import logging
 from datetime import datetime, timedelta
 
@@ -6,10 +8,10 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from analyzer import CryptoAnalyzer
-from config import config
-from data_collector import BinanceDataCollector
-from database import get_db_session, get_latest_price, get_symbols, init_db
+from src.analyze.analyzer import CryptoAnalyzer
+from src.core.app_config import config
+from src.core.database import get_db_session, get_latest_price, get_symbols, init_db
+from src.data.data_collector import BinanceDataCollector
 
 console = Console()
 
@@ -38,7 +40,6 @@ def get_date_range(days):
 def cli(verbose):
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
-    config.create_directories()
 
 
 @cli.command()
@@ -240,15 +241,8 @@ def status():
 
 @cli.command()
 def setup():
+    """Set up the application."""
     console.print("[bold blue]Setting up Crypto Data Analysis Tool[/bold blue]")
-
-    with console.status("[bold green]Initializing database..."):
-        try:
-            init_db()
-            console.print("[green]✓ Database initialized successfully")
-        except Exception as e:
-            console.print(f"[red]✗ Database initialization failed: {e}")
-            return
 
     with console.status("[bold green]Creating directories..."):
         try:
@@ -256,7 +250,13 @@ def setup():
             console.print("[green]✓ Directories created successfully")
         except Exception as e:
             console.print(f"[red]✗ Directory creation failed: {e}")
-            return
+
+    with console.status("[bold green]Initializing database..."):
+        try:
+            init_db()
+            console.print("[green]✓ Database initialized successfully")
+        except Exception as e:
+            console.print(f"[red]✗ Database initialization failed: {e}")
 
     console.print("\n[bold green]Setup completed successfully![/bold green]")
     console.print("\nNext steps:")

@@ -1,0 +1,211 @@
+# .cursorrules for Crypto Pair Trading Project
+
+## Code Philosophy
+- **Simplicity First**: Keep code as simple and readable as possible
+- **Maintainability**: Code should be easy to understand and modify
+- **Elegant Solutions**: Prefer clean, well-structured code over clever tricks
+- **Refactor Ruthlessly**: Don't hesitate to refactor for clarity
+- **Minimize Dependencies**: Fewer dependencies = better security, easier maintenance, and reduced complexity
+
+## Dependencies & External Libraries
+- **Use the best tool for the job**, but keep external dependencies to a minimum
+- **Prefer standard library** when possible over third-party packages
+- **Justify each dependency**: Ask "Do we really need this library?"
+- **Avoid dependency bloat**: Don't add heavy frameworks for simple tasks
+- **Pin versions** in requirements/dependencies for reproducible builds
+- **Regular audits**: Review and remove unused dependencies
+- **Security first**: Vet dependencies for known vulnerabilities
+
+### Current Core Dependencies (Keep Minimal)
+```python
+# Essential for trading
+ccxt           # Exchange API access
+pandas         # Data manipulation
+numpy          # Numerical computations
+
+# Database & Storage
+sqlalchemy     # Database ORM
+psycopg2       # PostgreSQL driver
+
+# Configuration & Environment
+python-dotenv  # Environment variables
+
+# Testing & Development
+pytest         # Testing framework
+ruff           # Linting & formatting
+```
+
+### Avoid Unless Absolutely Necessary
+- Heavy web frameworks (Flask/Django) for simple scripts
+- Multiple plotting libraries (pick one: matplotlib OR plotly)
+- Overlapping functionality packages
+- Experimental/alpha packages in production code
+
+## Type Hints & Documentation
+- **Prefer .pyi stub files** over inline type hints for complex/verbose method signatures
+- Use inline type hints for simple, clear signatures
+- Create .pyi files when:
+  - Method signatures are long or complex
+  - Class has many methods with type annotations
+  - Type information clutters code readability
+- Always document critical trading logic with clear docstrings
+
+## Testing Strategy
+**Critical Code Requires Tests:**
+- ✅ Trade execution logic (`execute_paper_trade`, `close_positions`)
+- ✅ Trading signals (`generate_signal`, `calculate_z_score`)
+- ✅ Position sizing (`calculate_position_sizes`)
+- ✅ Portfolio calculations (`calculate_portfolio_value`)
+- ✅ Cash accounting and flows
+- ✅ Data collection and processing
+- ✅ Risk management functions
+
+**Test Categories:**
+- Unit tests for individual methods
+- Integration tests for trading workflows
+- Mock external APIs (Binance, database)
+- Test edge cases (zero portfolio, extreme prices, etc.)
+
+## Code Structure Guidelines
+
+### Functions & Methods
+- Keep functions small and focused (max 20-30 lines)
+- Single responsibility principle
+- Clear, descriptive names
+- Avoid deep nesting (max 3 levels)
+
+### Classes
+- Keep classes focused and cohesive
+- Separate concerns (trading logic vs data collection vs analysis)
+- Use composition over inheritance
+- Clear separation of business logic and I/O
+
+### Error Handling
+- Use specific exception types
+- Log errors with context
+- Graceful degradation for non-critical failures
+- Fail fast for critical trading errors
+
+## Financial Code Best Practices
+
+### Trading Logic
+- **Never** use floating point for money calculations in production
+- Always validate inputs (prices, quantities, etc.)
+- Implement proper risk checks before trades
+- Log all trading decisions with context
+- Use paper trading for testing new strategies
+
+### Data Integrity
+- Validate data before processing
+- Handle missing/corrupt data gracefully
+- Implement data consistency checks
+- Use transactions for database operations
+
+### Security
+- Never log API keys or secrets
+- Use environment variables for credentials
+- Validate all external inputs
+- Implement rate limiting for API calls
+
+## File Organization
+
+```
+src/
+├── core/           # Configuration, database, shared utilities
+├── data/           # Data collection and processing
+├── trade/          # Trading algorithms and execution
+├── analyze/        # Data analysis and visualization
+├── backtest/       # Backtesting framework
+└── utils/          # Helper functions and utilities
+
+tests/
+├── test_trade/     # Trading logic tests
+├── test_data/      # Data processing tests
+├── test_analyze/   # Analysis tests
+└── fixtures/       # Test data and mocks
+```
+
+## Naming Conventions
+- Use descriptive variable names: `portfolio_value` not `pv`
+- Function names should be verbs: `calculate_spread()`, `execute_trade()`
+- Class names should be nouns: `PairTrader`, `DataCollector`
+- Constants in UPPER_CASE: `DEFAULT_SYMBOLS`, `MAX_POSITION_SIZE`
+- Private methods with underscore: `_validate_inputs()`
+
+## Performance Guidelines
+- Profile before optimizing
+- Cache expensive calculations when appropriate
+- Use pandas vectorized operations for data processing
+- Implement pagination for large database queries
+- Consider memory usage for large datasets
+
+## Documentation Standards
+- README with setup instructions and usage examples
+- Docstrings for all public methods and classes
+- Comment complex trading logic and algorithms
+- Document configuration options and their effects
+- Keep documentation up to date with code changes
+
+## Git & Development Workflow
+- Small, focused commits
+- Clear commit messages describing what and why
+- Use feature branches for new functionality
+- Code review for trading logic changes
+- Tag releases and document changes
+
+## Specific to Trading Systems
+- **Backtest First**: Always backtest new strategies before live trading
+- **Paper Trade**: Test with paper trading before real money
+- **Monitor Performance**: Track all trades and performance metrics
+- **Risk Management**: Implement stop losses and position limits
+- **Data Validation**: Verify price data integrity before trading
+- **State Persistence**: Save trading state for crash recovery
+
+## Code Examples
+
+### Good - Simple and Clear
+```python
+def calculate_position_size(self, symbol: str, capital: float) -> float:
+    """Calculate position size based on available capital."""
+    price = self.get_current_price(symbol)
+    max_position_value = capital * self.max_position_pct
+    return max_position_value / price
+
+def execute_trade(self, signal: int, prices: dict) -> bool:
+    """Execute trade based on signal."""
+    if signal == 0:
+        return False
+    
+    # Simple, clear logic
+    if signal == 1:
+        return self._execute_long_trade(prices)
+    else:
+        return self._execute_short_trade(prices)
+```
+
+### Avoid - Complex inline types
+```python
+# Bad - complex inline types hurt readability
+def backtest_strategy(
+    self, 
+    data: Dict[str, pd.DataFrame], 
+    params: Dict[str, Union[int, float, bool]], 
+    metrics: List[Callable[[pd.DataFrame], float]]
+) -> Tuple[Dict[str, float], pd.DataFrame, List[Dict[str, Any]]]:
+    pass
+
+# Good - use .pyi stub file instead
+def backtest_strategy(self, data, params, metrics):
+    """Backtest trading strategy with given parameters."""
+    pass
+```
+
+## When to Refactor
+- Function exceeds 30 lines
+- Class has too many responsibilities
+- Code is repeated in multiple places
+- Logic is hard to understand or explain
+- Adding new features becomes difficult
+- Tests are hard to write or maintain
+
+Remember: **Trading systems handle real money. Clarity and correctness are more important than cleverness.** 

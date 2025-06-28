@@ -72,37 +72,84 @@ class LiveChartDisplay:
             self.available = False
 
     def _setup_chart(self):
-        """Initialize the matplotlib chart."""
+        """Initialize the matplotlib chart with dark wombat theme."""
         if not self.available:
             return
 
+        # Set dark theme style
+        self.plt.style.use("dark_background")
+
         # Create figure with single subplot
         self.fig, self.ax = self.plt.subplots(1, 1, figsize=(14, 8))
-        self.fig.suptitle(f"Live Pair Trading: {self.symbol1} vs {self.symbol2}", fontsize=16, fontweight="bold")
 
-        # Set up the main chart
-        self.ax.set_title("Z-Score & Cumulative Price Changes (from start)", fontsize=12)
-        self.ax.set_xlabel("Time")
-        self.ax.set_ylabel("Z-Score / Percentage Change (%)")
-        self.ax.grid(True, alpha=0.3)
+        # Dark wombat color scheme
+        bg_color = "#2c2e34"  # Dark gray background
+        grid_color = "#3e4044"  # Slightly lighter gray for grid
+        text_color = "#d4b87c"  # Warm beige for text
 
-        # Initialize z-score lines
-        (self.line_zscore,) = self.ax.plot([], [], "b-", linewidth=2, label="Z-Score")
-        (self.line_threshold_upper,) = self.ax.plot([], [], "r--", linewidth=1, alpha=0.7, label=f"Threshold (+{self.z_threshold})")
-        (self.line_threshold_lower,) = self.ax.plot([], [], "r--", linewidth=1, alpha=0.7, label=f"Threshold (-{self.z_threshold})")
+        # Set figure and axis background colors
+        self.fig.patch.set_facecolor(bg_color)
+        self.ax.set_facecolor(bg_color)
 
-        # Initialize cumulative percentage change lines
+        # Title with wombat styling
+        self.fig.suptitle(f"Live Pair Trading: {self.symbol1} vs {self.symbol2}", fontsize=16, fontweight="bold", color=text_color)
+
+        # Set up the main chart with enhanced styling
+        self.ax.set_title("Z-Score & Cumulative Price Changes (from start)", fontsize=12, color=text_color, pad=15)
+        self.ax.set_xlabel("Time", color=text_color, fontsize=11)
+        self.ax.set_ylabel("Z-Score / Percentage Change (%)", color=text_color, fontsize=11)
+
+        # Enhanced grid styling
+        self.ax.grid(True, alpha=0.2, color=grid_color, linewidth=0.8)
+        self.ax.set_axisbelow(True)  # Grid behind plot elements
+
+        # Wombat color palette for lines
+        z_score_color = "#8ac6f2"  # Cool blue for z-score
+        threshold_color = "#e5786d"  # Warm red for thresholds
+        symbol1_color = "#95e454"  # Bright green for first symbol
+        symbol2_color = "#cae682"  # Lighter green for second symbol
+
+        # Initialize z-score lines with enhanced styling
+        (self.line_zscore,) = self.ax.plot([], [], color=z_score_color, linewidth=2.5, label="Z-Score", alpha=0.9)
+        (self.line_threshold_upper,) = self.ax.plot(
+            [], [], color=threshold_color, linestyle="--", linewidth=1.5, alpha=0.8, label=f"Threshold (+{self.z_threshold})"
+        )
+        (self.line_threshold_lower,) = self.ax.plot(
+            [], [], color=threshold_color, linestyle="--", linewidth=1.5, alpha=0.8, label=f"Threshold (-{self.z_threshold})"
+        )
+
+        # Initialize cumulative percentage change lines with enhanced styling
         symbol1_name = self.symbol1.split("/")[0]
         symbol2_name = self.symbol2.split("/")[0]
-        (self.line_price1_norm,) = self.ax.plot([], [], "g-", linewidth=2, alpha=0.8, label=f"{symbol1_name} % Change")
-        (self.line_price2_norm,) = self.ax.plot([], [], "orange", linewidth=2, alpha=0.8, label=f"{symbol2_name} % Change")
+        (self.line_price1_norm,) = self.ax.plot([], [], color=symbol1_color, linewidth=2.2, alpha=0.9, label=f"{symbol1_name} % Change")
+        (self.line_price2_norm,) = self.ax.plot([], [], color=symbol2_color, linewidth=2.2, alpha=0.9, label=f"{symbol2_name} % Change")
 
-        # Add legend (Note: Z-score line will appear once algorithm has enough data)
-        self.ax.legend(loc="upper right")
+        # Enhanced legend with dark theme styling
+        legend = self.ax.legend(
+            loc="upper right",
+            frameon=True,
+            fancybox=True,
+            shadow=True,
+            facecolor="#1a1c20",  # Dark legend background
+            edgecolor=grid_color,
+            fontsize=10,
+        )
+        legend.get_frame().set_alpha(0.9)
 
-        # Format x-axis for time
+        # Style legend text
+        for text in legend.get_texts():
+            text.set_color(text_color)
+
+        # Format x-axis for time with dark theme
         self.ax.xaxis.set_major_formatter(self.mdates.DateFormatter("%H:%M"))
         self.ax.xaxis.set_major_locator(self.mdates.MinuteLocator(interval=5))
+
+        # Style axis ticks and labels
+        self.ax.tick_params(axis="both", colors=text_color, labelsize=9)
+        self.ax.spines["bottom"].set_color(grid_color)
+        self.ax.spines["top"].set_color(grid_color)
+        self.ax.spines["left"].set_color(grid_color)
+        self.ax.spines["right"].set_color(grid_color)
 
         # Set initial y-axis limits to reasonable range
         self.ax.set_ylim(-4, 4)
@@ -158,9 +205,16 @@ class LiveChartDisplay:
         if not self.available:
             return
 
-        # Store trade for plotting
-        color = "green" if signal == 1 else "red" if signal == -1 else "orange"
-        marker = "^" if signal == 1 else "v" if signal == -1 else "o"
+        # Store trade for plotting with wombat theme colors
+        if signal == 1:  # Long trade
+            color = "#95e454"  # Bright green (matches symbol1 color)
+            marker = "^"
+        elif signal == -1:  # Short trade
+            color = "#e5786d"  # Warm red (matches threshold color)
+            marker = "v"
+        else:  # Close trade
+            color = "#d4b87c"  # Warm beige (matches text color)
+            marker = "o"
 
         self.trades.append({
             "timestamp": timestamp,
@@ -207,7 +261,7 @@ class LiveChartDisplay:
             for artist in self.ax.collections:
                 artist.remove()
 
-            # Plot trade markers
+            # Plot trade markers with enhanced styling for dark theme
             for trade in self.trades:
                 trade_time = self.mdates.date2num(trade["timestamp"])
                 self.ax.scatter(
@@ -215,11 +269,11 @@ class LiveChartDisplay:
                     trade["z_score"],
                     c=trade["color"],
                     marker=trade["marker"],
-                    s=120,
-                    alpha=0.8,
-                    edgecolors="black",
-                    linewidth=1,
-                    zorder=5,
+                    s=140,  # Slightly larger markers
+                    alpha=0.9,
+                    edgecolors="#1a1c20",  # Dark edge color matching legend background
+                    linewidth=1.5,
+                    zorder=10,  # Higher z-order to appear above lines
                 )
 
             # Adjust axis limits dynamically
